@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-from functools import partial
+from functools import wraps
 from fnmatch import fnmatch  # unix filename pattern matching
 
 from twisted.application.service import Service
@@ -18,6 +18,21 @@ DEFAULT_BLACKLIST = (
     "*.xlk",
     "*.tmp"
 )
+
+
+def filter_events(method):
+    """filter_events decorates watchdog.events.EventHandler methods such that
+    events that are not inclusively matched by a job's whitelist and exclusively
+    matched by that same job's blacklist are ignored.
+    """
+    @wraps(method)
+    def wrapper(self, event):
+        included = match_any(self.includes, event.dest_path)
+        excluded = match_any(self.excludes, event.dest_path)
+        if included and not excluded:
+            return method(self, event)
+    return wrapper
+
 
 def match_any(globlist, path):
     """Returns true if the path is matched by at least one of the UNIX wildcard
@@ -61,15 +76,7 @@ class Job(Service, FileSystemEventHandler):
         super(Job, self).stopService()
         raise NotImplementedError
 
-    def attend_to_event(self, event):
-        """If True, the event references a filesystem path that concerns the
-        present `Job` instance, i.e.:  it is matched by the whitelist (see:
-        Job.includes) and is not matched by the blacklist (see: Job.excludes).
-        """
-        included = match_any(self.includes, event.dest_path)
-        excluded = match_any(self.excludes, event.dest_path)
-        return included and not excluded
-
+    @filter_events
     def on_moved(self, event):
         """Called when a file or a directory is moved or renamed.
 
@@ -78,10 +85,8 @@ class Job(Service, FileSystemEventHandler):
         :type event:
             :class:`DirMovedEvent` or :class:`FileMovedEvent`
         """
-        if self.attend_to_event:
-            pass  # do something
 
-
+    @filter_events
     def on_created(self, event):
         """Called when a file or directory is created.
 
@@ -91,6 +96,7 @@ class Job(Service, FileSystemEventHandler):
             :class:`DirCreatedEvent` or :class:`FileCreatedEvent`
         """
 
+    @filter_events
     def on_deleted(self, event):
         """Called when a file or directory is deleted.
 
@@ -100,6 +106,7 @@ class Job(Service, FileSystemEventHandler):
             :class:`DirDeletedEvent` or :class:`FileDeletedEvent`
         """
 
+    @filter_events
     def on_modified(self, event):
         """Called when a file or directory is modified.
 

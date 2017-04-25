@@ -6,10 +6,18 @@ from watchdog.events import FileSystemMovedEvent
 from pydio import job
 
 
-class TestMatchAny(TestCase):
+class TestFilters(TestCase):
     """Test UNIX wildcard matching for include/exclude filters using
     job.DEFAULT_BLACKLIST as a test case.
     """
+
+    class MockHandler(object):
+        includes = job.DEFAULT_WHITELIST
+        excludes = job.DEFAULT_BLACKLIST
+
+        @job.filter_events
+        def mock_method(self, event):
+            return True
 
     def test_expect_include(self):
         expect_include = (
@@ -44,30 +52,20 @@ class TestMatchAny(TestCase):
                 "False negative for `{0}`".format(path)
             )
 
-
-class TestJobWithoutObserver(TestCase):
-    """Effectuate tests for pydio.job.Job where an Observer instance (or stub)
-    is not required.
-    """
-    def setUp(self):
-        cfg = {"workspace": "", "directory": "", "server": ""}
-        self.job = job.Job(None, "TestJob", cfg)
-
-    def tearDown(self):
-        del self.job
-
-    def test_consider_event(self):
+    def test_filter_evets_pass(self):
+        m = self.MockHandler()
         path = "file.txt"
         ev = FileSystemMovedEvent("", path, is_directory=False)
         self.assertTrue(
-            self.job.attend_to_event(ev),
+            m.mock_method(ev),
             "Path `{0}` should have been considered.".format(path),
         )
 
-    def test_ignor_event(self):
+    def test_filter_events_fail(self):
+        m = self.MockHandler()
         path = ".DS_Store"
         ev = FileSystemMovedEvent("", path, is_directory=False)
-        self.assertFalse(
-            self.job.attend_to_event(ev),
+        self.assertIsNone(
+            m.mock_method(ev),
             "Path `{0}` should have been ignored.".format(path),
         )
