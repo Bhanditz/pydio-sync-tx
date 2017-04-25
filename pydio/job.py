@@ -61,6 +61,15 @@ class Job(Service, FileSystemEventHandler):
         super(Job, self).stopService()
         raise NotImplementedError
 
+    def attend_to_event(self, event):
+        """If True, the event references a filesystem path that concerns the
+        present `Job` instance, i.e.:  it is matched by the whitelist (see:
+        Job.includes) and is not matched by the blacklist (see: Job.excludes).
+        """
+        included = match_any(self.includes, event.dest_path)
+        excluded = match_any(self.excludes, event.dest_path)
+        return included and not excluded
+
     def on_moved(self, event):
         """Called when a file or a directory is moved or renamed.
 
@@ -69,9 +78,7 @@ class Job(Service, FileSystemEventHandler):
         :type event:
             :class:`DirMovedEvent` or :class:`FileMovedEvent`
         """
-        included = match_any(self.include, event.dest_path)
-        excluded = match_any(self.excludes, event.dest_path)
-        if included and not excluded:
+        if self.attend_to_event:
             pass  # do something
 
 

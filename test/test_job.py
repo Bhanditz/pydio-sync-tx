@@ -1,6 +1,10 @@
 #! /usr/bin/env python
 from unittest import TestCase
+
+from watchdog.events import FileSystemMovedEvent
+
 from pydio import job
+
 
 class TestMatchAny(TestCase):
     """Test UNIX wildcard matching for include/exclude filters using
@@ -16,8 +20,10 @@ class TestMatchAny(TestCase):
             "relative/path/to/some/file.txt"
         )
         for path in expect_include:
-            if job.match_any(job.DEFAULT_BLACKLIST, path):
-                raise ValueError("False positive for `{0}`".format(path))
+            self.assertFalse(
+                job.match_any(job.DEFAULT_BLACKLIST, path),
+                "False positive for `{0}`".format(path),
+            )
 
     def test_expect_exclude(self):
         expect_exclude = (
@@ -33,5 +39,35 @@ class TestMatchAny(TestCase):
             "relative/path/to/file.tmp"
         )
         for path in expect_exclude:
-            if not job.match_any(job.DEFAULT_BLACKLIST, path):
-                raise ValueError("False negative for `{0}`".format(path))
+            self.assertTrue(
+                job.match_any(job.DEFAULT_BLACKLIST, path),
+                "False negative for `{0}`".format(path)
+            )
+
+
+class TestJobWithoutObserver(TestCase):
+    """Effectuate tests for pydio.job.Job where an Observer instance (or stub)
+    is not required.
+    """
+    def setUp(self):
+        cfg = {"workspace": "", "directory": "", "server": ""}
+        self.job = job.Job(None, "TestJob", cfg)
+
+    def tearDown(self):
+        del self.job
+
+    def test_consider_event(self):
+        path = "file.txt"
+        ev = FileSystemMovedEvent("", path, is_directory=False)
+        self.assertTrue(
+            self.job.attend_to_event(ev),
+            "Path `{0}` should have been considered.".format(path),
+        )
+
+    def test_ignor_event(self):
+        path = ".DS_Store"
+        ev = FileSystemMovedEvent("", path, is_directory=False)
+        self.assertFalse(
+            self.job.attend_to_event(ev),
+            "Path `{0}` should have been ignored.".format(path),
+        )
