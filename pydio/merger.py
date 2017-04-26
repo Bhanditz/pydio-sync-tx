@@ -1,5 +1,6 @@
 #! /user/bin/env python
 
+from zope.interface.verify import verifyObject
 from zope.interface import Interface, implementer
 
 
@@ -13,6 +14,20 @@ class ISynchronizable(Interface):
 @implementer(ISynchronizable)
 class PydioServerWorkspace:
     """An ISynchronizable interface to a remote Pydio workspace"""
+
+    # PydioSdk(
+    #         job_config["server"],
+    #         ws_id=self.ws_id,
+    #         remote_folder=job_config["remote_folder"],
+    #         user_id=job_config["user_id"],
+    #         device_id=ConfigManager().device_id,
+    #         skip_ssl_verify=job_config["trust_ssl"],
+    #         proxies=ConfigManager().defined_proxies,
+    #         timeout=job_config["timeout"]
+    #     )
+
+    # def __init__(self):
+    #     pass
 
     def getChanges(idx):
         raise NotImplementedError
@@ -48,11 +63,11 @@ class SQLiteMerger:
     def __init__(self, local, remote):
         emsg = "{0} does not implement ISynchronizable"
 
-        if not ISynchronizable.implementedBy(local):
+        if not verifyObject(ISynchronizable, local):
             raise TypeError(emsg.format(type(local)))
         self.local = local
 
-        if not ISynchronizable.implementedBy(remote):
+        if not verifyObject(ISynchronizable, remote):
             raise TypeError(emsg.format(type(remote)))
         self.local = local
 
