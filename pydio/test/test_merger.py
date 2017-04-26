@@ -1,5 +1,8 @@
 #! /usr/bin/env python
-from unittest import TestCase
+from twisted.trial.unittest import TestCase
+
+from shutil import rmtree
+from tempfile import mkdtemp
 
 from zope.interface import implementer
 from zope.interface.verify import DoesNotImplement
@@ -13,6 +16,9 @@ class DummySynchronizable:
     purposes
     """
     def get_changes(self, idx):
+        pass
+
+    def assert_ready(self):
         pass
 
 
@@ -39,7 +45,6 @@ class TestIMerger(TestCase):
 
 
 class TestSQLiteMergerIfaceEnforcement(TestCase):
-
 
     synchronizable = DummySynchronizable()
 
@@ -106,3 +111,19 @@ class TestSQLiteMergerLocking(TestCase):
                 pass
 
         self.assertRaises(merger.ConcurrentMerge, concurrent_merge)
+
+
+class TestLocalWorkspace(TestCase):
+    def setUp(self):
+        self.path = mkdtemp(prefix="pydio_test")
+        self.ws = merger.LocalWorkspace(dir=self.path)
+
+    def tearDown(self):
+        self.ws = None
+        rmtree(self.path)
+
+    def test_dir(self):
+        self.assertEqual(self.ws.dir, self.path, "path improperly set/reported")
+
+    def test_assert_ready(self):
+        pass

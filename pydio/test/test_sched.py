@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-from unittest import TestCase
+from twisted.trial.unittest import TestCase
 
 from pydio import sched
 
