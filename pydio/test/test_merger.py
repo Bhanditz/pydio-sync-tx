@@ -126,4 +126,8 @@ class TestLocalWorkspace(TestCase):
         self.assertEqual(self.ws.dir, self.path, "path improperly set/reported")
 
     def test_assert_ready(self):
-        pass
+        return self.ws.assert_ready()
+
+    def test_assert_ready_fail(self):
+        self.ws._dir = "/does/not/exist"
+        self.assertFailure(self.ws.assert_ready())
