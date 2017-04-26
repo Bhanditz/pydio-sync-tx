@@ -7,7 +7,7 @@ from appdirs import user_data_dir
 from twisted.application import service
 
 # from pydio.web import UIServer, APIServer
-from pydio.core import Scheduler
+from pydio.sched import Scheduler
 
 APP_NAME = "pydio-sync"
 USR_DATA_DIR = user_data_dir(
