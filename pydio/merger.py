@@ -1,13 +1,15 @@
 #! /user/bin/env python
 
-from zope.interface.verify import verifyObject
 from zope.interface import Interface, implementer
+from zope.interface.verify import verifyObject
+
+from twisted.internet import defer
 
 
 class ISynchronizable(Interface):
     """Represents one side of a synchronization equation"""
 
-    def getChanges(idx):
+    def get_changes(idx):
         """Get changes with a higher index than `idx`"""
 
 
@@ -29,7 +31,8 @@ class PydioServerWorkspace:
     # def __init__(self):
     #     pass
 
-    def getChanges(idx):
+    @defer.inlineCallbacks
+    def get_changes(self, idx):
         raise NotImplementedError
 
 
@@ -45,7 +48,8 @@ class LocalWorkspace:
         """Local directory being watched"""
         return self._dir
 
-    def getChanges(idx):
+    @defer.inlineCallbacks
+    def get_changes(self, idx):
         raise NotImplementedError
 
 
@@ -61,16 +65,30 @@ class SQLiteMerger:
     """Synchronize two ISynchronizables using an SQLite table"""
 
     def __init__(self, local, remote):
-        emsg = "{0} does not implement ISynchronizable"
-
-        if not verifyObject(ISynchronizable, local):
-            raise TypeError(emsg.format(type(local)))
+        verifyObject(ISynchronizable, local)
         self.local = local
 
-        if not verifyObject(ISynchronizable, remote):
-            raise TypeError(emsg.format(type(remote)))
-        self.local = local
+        verifyObject(ISynchronizable, remote)
+        self.remote = remote
 
-    #@inlineCallbacks
+    def _fetch_changes(self):
+        """Get local and remote changes"""
+        # equivalent to _compute_changes
+        return defer.gatherResults([
+            self.local.get_changes(),
+            self.remote.get_changes(),
+        ])
+
+    @defer.inlineCallbacks
     def sync(self):
-        raise  NotImplementedError
+
+        # TODO init_global_progress()
+
+        # self._check_ready_for_sync_run()
+        # self._check_target_volumes()
+        # self._load_directory_snapshots()
+        # self._wait_db_lock()
+
+        yield self._fetch_changes()
+
+        # merge()

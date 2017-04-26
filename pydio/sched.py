@@ -115,18 +115,18 @@ class Scheduler(MultiService):
 
         # load jobs
         with open(job_cfg_path) as f:
-            for name, cfg in json.load(f).iteritems():
+            for name, cfg in json.load(f).items():
                 self.log.info("Configuring {name}", name=name)
 
                 # TODO : configure
 
-                local = LocalWorkspace()
+                local = LocalWorkspace(cfg["directory"])
                 remote = RemoteWorkspace()
                 merger = SQLiteMerger(local, remote)
 
                 looper = looper_from_config(freq = cfg.pop("frequency", 10))
 
-                self.addService(Job(name, merger, l))
+                self.addService(Job(name, merger, looper))
 
     def __str__(self):
         return "<Scheduler with {0} jobs>".format(len(self.services))
