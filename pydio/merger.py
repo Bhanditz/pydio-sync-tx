@@ -1,4 +1,5 @@
 #! /user/bin/env python
+import os.path as osp
 from contextlib import contextmanager
 
 from zope.interface import Interface, implementer
@@ -6,6 +7,7 @@ from zope.interface.verify import verifyObject
 
 from twisted.logger import Logger
 from twisted.internet import defer
+from twisted.internet.threads import deferToThread
 
 
 class ISynchronizable(Interface):
@@ -13,6 +15,11 @@ class ISynchronizable(Interface):
 
     def get_changes(idx):
         """Get changes with a higher index than `idx`"""
+
+    def assert_ready():
+        """Assert that ISynchronizable is available and consistent, i.e. it is
+        ready to merge.
+        """
 
 
 @implementer(ISynchronizable)
@@ -37,6 +44,10 @@ class PydioServerWorkspace:
     def get_changes(self, idx):
         raise NotImplementedError
 
+    def assert_ready(self):
+        # TODO:  implement based on remote SDK
+        raise  NotImplementedError
+
 
 @implementer(ISynchronizable)
 class LocalWorkspace:
@@ -53,6 +64,13 @@ class LocalWorkspace:
     @defer.inlineCallbacks
     def get_changes(self, idx):
         raise NotImplementedError
+
+    @defer.inlineCallbacks
+    def assert_ready(self):
+        exists = yield deferToThread(osp.exists, self.dir)
+        if not exists:
+            raise IOError("{0} unreachable".format(self.dir))
+
 
 
 class IMerger(Interface):
@@ -125,9 +143,19 @@ class SQLiteMerger:
         with self._lock_for_sync_run():
             # TODO init_global_progress()
 
-            # self._check_target_volumes()
+            yield self.assert_volumes_ready()
             # self._load_directory_snapshots()
             # self._wait_db_lock()
 
             yield self._fetch_changes()
             # merge()
+
+    @defer.inlineCallbacks
+    def assert_volumes_ready(self):
+        """Verify that local and remote sync targets are present, accessible and
+        in consistent states (i.e.:  ready to merge).
+        """
+        yield defer.gatherResults(map(defer.maybeDeferred, [
+            self.local.assert_ready,
+            self.remote.assert_ready,
+        ]))
