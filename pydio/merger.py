@@ -1,8 +1,10 @@
 #! /user/bin/env python
+from contextlib import contextmanager
 
 from zope.interface import Interface, implementer
 from zope.interface.verify import verifyObject
 
+from twisted.logger import Logger
 from twisted.internet import defer
 
 
@@ -60,16 +62,30 @@ class IMerger(Interface):
         """Synchronize"""
 
 
+class ConcurrentMerge(RuntimeError):
+    """Signals that a new merge was attempted before the previous one finished
+    """
+
+
 @implementer(IMerger)
 class SQLiteMerger:
     """Synchronize two ISynchronizables using an SQLite table"""
 
-    def __init__(self, local, remote):
+    log = Logger()
+
+    def __init__(self, local, remote, direction=None):
         verifyObject(ISynchronizable, local)
         self.local = local
 
         verifyObject(ISynchronizable, remote)
         self.remote = remote
+
+        self.direction = direction
+        self._locked = False
+
+    @property
+    def merging(self):
+        return self._locked
 
     def _fetch_changes(self):
         """Get local and remote changes"""
@@ -79,16 +95,39 @@ class SQLiteMerger:
             self.remote.get_changes(),
         ])
 
-    @defer.inlineCallbacks
+    @contextmanager
+    def _lock_for_sync_run(self):
+        """Returns a context manager that locks the SQLiteMerger instance such
+        that new sync runs cannot begin until the present one terminates.
+        """
+        if self.merging:
+            raise ConcurrentMerge
+
+        self._locked = True
+        try:
+            yield
+        finally:
+            self._locked = False
+
     def sync(self):
+        try:
+            d = dict(up=":==>", down="<==:").get(self.direction, "<==>")
+            self.log.info("Merging {m.local} {arrow} {m.remote}", m=self, arrow=d)
 
-        # TODO init_global_progress()
+            # self._merge handles locking and returns a Deferred
+            return self._merge()
 
-        # self._check_ready_for_sync_run()
-        # self._check_target_volumes()
-        # self._load_directory_snapshots()
-        # self._wait_db_lock()
+        except ConcurrentMerge:
+            self.log.warn("Previous merge not terminated.  Skipping.")
 
-        yield self._fetch_changes()
+    @defer.inlineCallbacks
+    def _merge(self):
+        with self._lock_for_sync_run():
+            # TODO init_global_progress()
 
-        # merge()
+            # self._check_target_volumes()
+            # self._load_directory_snapshots()
+            # self._wait_db_lock()
+
+            yield self._fetch_changes()
+            # merge()
