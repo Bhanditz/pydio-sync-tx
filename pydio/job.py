@@ -2,11 +2,14 @@
 import datetime
 
 from zope.interface import Interface, implementer
+from zope.interface.verify import verifyObject
 
 from twisted.logger import Logger
 from twisted.application.service import Service
 
 from watchdog.observers import Observer
+
+from . import IJob
 
 # DEFAULT_WHITELIST = ("*",)
 # DEFAULT_BLACKLIST = (
@@ -45,13 +48,8 @@ from watchdog.observers import Observer
 #     return any(map(lambda glb: fnmatch(path, glb), globlist))
 
 
-class IJob(Interface):
-    def do_job():
-        """Perform one iteration of the job at hand"""
-
-
 @implementer(IJob)
-class Job(Service):
+class DirSync(Service):
     """Implements watchdog.events.EventHandler.  When a relevant event is
     received, a sync run is scheduled on the reactor.
 
@@ -78,7 +76,7 @@ class Job(Service):
         self._merger.sync()
 
     def startService(self):
-        super(Job, self).startService()
+        super(DirSync, self).startService()
         if self._looper is None:
             self.log.info("{name} synchronization set to manual", name=self.name)
             return
@@ -86,6 +84,6 @@ class Job(Service):
         return self._looper.start_loop(self.do_job)
 
     def stopService(self):
-        super(Job, self).stopService()
+        super(DirSync, self).stopService()
         if self._looper is not None:
             return self._looper.stop_loop()

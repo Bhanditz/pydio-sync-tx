@@ -7,12 +7,12 @@ from tempfile import mkdtemp
 from zope.interface import implementer
 from zope.interface.verify import DoesNotImplement
 
-from pydio import merger
+from pydio import merger, ISynchronizable
 
 
-@implementer(merger.ISynchronizable)
+@implementer(ISynchronizable)
 class DummySynchronizable:
-    """A null-op class that satisfies merger.ISynchronizable for testing
+    """A null-op class that satisfies ISynchronizable for testing
     purposes
     """
     def get_changes(self, idx):
@@ -25,13 +25,13 @@ class DummySynchronizable:
 class TestISynchronizable(TestCase):
     def test_PydioServerWorkspace(self):
         self.assertTrue(
-            merger.ISynchronizable.implementedBy(merger.PydioServerWorkspace),
+            ISynchronizable.implementedBy(merger.PydioServerWorkspace),
             "PydioServerWorkspace does not implement ISynchronizable",
         )
 
     def test_LocalWorkspace(self):
         self.assertTrue(
-            merger.ISynchronizable.implementedBy(merger.LocalWorkspace),
+            ISynchronizable.implementedBy(merger.LocalWorkspace),
             "LocalWorkspace does not implement ISynchronizable",
         )
 

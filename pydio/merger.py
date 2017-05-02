@@ -2,24 +2,15 @@
 import os.path as osp
 from contextlib import contextmanager
 
-from zope.interface import Interface, implementer
+from zope.interface import implementer
 from zope.interface.verify import verifyObject
 
 from twisted.logger import Logger
 from twisted.internet import defer
 from twisted.internet.threads import deferToThread
 
+from . import ISynchronizable, IMerger
 
-class ISynchronizable(Interface):
-    """Represents one side of a synchronization equation"""
-
-    def get_changes(idx):
-        """Get changes with a higher index than `idx`"""
-
-    def assert_ready():
-        """Assert that ISynchronizable is available and consistent, i.e. it is
-        ready to merge.
-        """
 
 
 @implementer(ISynchronizable)
@@ -73,14 +64,6 @@ class LocalWorkspace:
         exists = yield deferToThread(osp.exists, self.dir)
         if not exists:
             raise IOError("{0} unreachable".format(self.dir))
-
-
-
-class IMerger(Interface):
-    """A class that can perform a merge of two or more ISynchronizables"""
-
-    def sync():
-        """Synchronize"""
 
 
 class ConcurrentMerge(RuntimeError):

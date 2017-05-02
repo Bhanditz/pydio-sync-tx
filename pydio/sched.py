@@ -2,24 +2,15 @@
 import yaml
 import datetime
 
-from zope.interface import Interface, implementer
+from zope.interface import implementer
 
 from twisted.logger import Logger
 from twisted.application.service import MultiService
 from twisted.internet.task import LoopingCall, deferLater
 
-from .job import Job
+from . import ILooper, IMerger
+from .job import DirSync
 from .merger import LocalWorkspace, PydioServerWorkspace, SQLiteMerger
-
-
-class ILooper(Interface):
-    """Provides fine-grained control over periodic, deferred actions."""
-
-    def start_loop(fn):
-        """Enter the loop, calling `fn` at each iteration"""
-
-    def stop_loop():
-        """Exit the loop"""
 
 
 @implementer(ILooper)
@@ -128,7 +119,7 @@ class Scheduler(MultiService):
 
             looper = looper_from_config(freq=cfg.pop("frequency", 10))
 
-            self.addService(Job(name, merger, looper))
+            self.addService(DirSync(name, merger, looper))
 
     def __str__(self):
         return "<Scheduler with {0} jobs>".format(len(self.services))

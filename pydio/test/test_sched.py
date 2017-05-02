@@ -2,19 +2,20 @@
 
 from twisted.trial.unittest import TestCase
 
+from pydio import ILooper
 from pydio import sched
 
 
 class TestILooper(TestCase):
     def test_ClockLoop(self):
         self.assertTrue(
-            sched.ILooper.implementedBy(sched.ClockLoop),
+            ILooper.implementedBy(sched.ClockLoop),
             "ClockLoop does not implement ILooper",
         )
 
     def test_PeriodicLoop(self):
         self.assertTrue(
-            sched.ILooper.implementedBy(sched.PeriodicLoop),
+            ILooper.implementedBy(sched.PeriodicLoop),
             "PeriodicLoop does not implement ILooper",
         )
 
