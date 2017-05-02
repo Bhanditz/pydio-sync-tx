@@ -6,6 +6,7 @@ from tempfile import mkdtemp
 
 from zope.interface import implementer
 from zope.interface.verify import DoesNotImplement
+from twisted.internet.defer import inlineCallbacks
 
 from pydio import merger, ISynchronizable
 
@@ -131,3 +132,44 @@ class TestLocalWorkspace(TestCase):
     def test_assert_ready_fail(self):
         self.ws._dir = "/does/not/exist"
         self.assertFailure(self.ws.assert_ready())
+
+
+@implementer(ISynchronizable)
+class DummyWorkspace():
+    def __init__(self, fail_assertion=False):
+        self.fail_assertion = fail_assertion
+
+    def get_changes(self, idx):
+        raise NotImplementedError
+
+    def assert_ready(self):
+        if self.fail_assertion:
+            raise AssertionError("testing failure case")
+
+class TestSQLiteMergerSync(TestCase):
+    def setUp(self):
+        self.local = DummyWorkspace()
+        self.remote = DummyWorkspace()
+        self.merger = merger.SQLiteMerger(self.local, self.remote)
+
+    def tearDown(self):
+        del self.local
+        del self.remote
+        del self.merger
+
+    def test_assert_volume_ready__pass(self):
+        return self.merger.assert_volumes_ready()
+
+    # def test_assert_volume_ready__fail_local(self):
+    #     self.local.fail_assertion = True
+    #     return self.assertFailure(
+    #         self.merger.assert_volumes_ready(),
+    #         AssertionError,
+    #     )
+
+    # def test_assert_volume_ready__fail_remote(self):
+    #     self.remote.fail_assertion = True
+    #     return self.assertFailure(
+    #         self.merger.assert_volumes_ready(),
+    #         AssertionError,
+    #     )

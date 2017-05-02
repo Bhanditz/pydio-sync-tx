@@ -116,7 +116,7 @@ class SQLiteMerger:
     def sync(self):
         try:
             d = dict(up=":==>", down="<==:").get(self.direction, "<==>")
-            self.log.info("Merging {m.local} {arrow} {m.remote}", m=self, arrow=d)
+            self.log.info("Merging {m.local} {dir} {m.remote}", m=self, dir=d)
 
             # self._merge handles locking and returns a Deferred
             return self._merge()
@@ -127,23 +127,18 @@ class SQLiteMerger:
     @defer.inlineCallbacks
     def _merge(self):
         with self._lock_for_sync_run():
-            # TODO init_global_progress() (needed?  Probably, for WebUI feedback)
+            # TODO init_global_progress() (I think this is needed for WebUI feedback)
 
             yield self.assert_volumes_ready()
-
-            # NOTE:  these can probably be merged into _load_diffs(), or something
-            # self._load_directory_snapshots()  # TODO
-            # self._wait_db_lock()              # TODO
 
             yield self._fetch_changes()
             # merge()
 
-    @defer.inlineCallbacks
-    def assert_volumes_ready(self):
+    def assert_volumes_ready(self):  # exported because it's a pure function
         """Verify that local and remote sync targets are present, accessible and
         in consistent states (i.e.:  ready to merge).
         """
-        yield defer.gatherResults(map(defer.maybeDeferred, [
+        return defer.gatherResults(map(defer.maybeDeferred, [
             self.local.assert_ready,
             self.remote.assert_ready,
-        ]))
+        ])).addErrback(lambda f: f.value.subFailure.raiseException())
