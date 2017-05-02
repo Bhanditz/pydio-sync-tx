@@ -9,7 +9,7 @@ from twisted.application.service import Service
 
 from watchdog.observers import Observer
 
-from . import IJob
+from . import IJob, IMerger, ILooper
 
 # DEFAULT_WHITELIST = ("*",)
 # DEFAULT_BLACKLIST = (
@@ -64,7 +64,11 @@ class DirSync(Service):
 
     def __init__(self, name, merger, looper):
         self.name = name  # enforce named services
+
+        verifyObject(IMerger, merger)
         self._merger = merger
+
+        verifyObject(Ilooper, looper)
         self._looper = looper
 
     def do_job(self):
