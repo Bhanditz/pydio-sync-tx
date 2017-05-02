@@ -68,7 +68,7 @@ class DirSync(Service):
         verifyObject(IMerger, merger)
         self._merger = merger
 
-        verifyObject(Ilooper, looper)
+        verifyObject(ILooper, looper)
         self._looper = looper
 
     def do_job(self):
