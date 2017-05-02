@@ -3,6 +3,10 @@ from zope.interface import Interface
 
 
 class IJob(Interface):
+    """A pre-configured task that can be called repeatedly.
+    IJobs are scheduled for execution by pydio.sched.Scheduler.
+    """
+
     def do_job():
         """Perform one iteration of the job at hand"""
 
@@ -30,7 +34,7 @@ class ISynchronizable(Interface):
 
 
 class IMerger(Interface):
-    """A class that can perform a merge of two or more ISynchronizables"""
+    """IMplements merge logic for two or more ISynchronizables"""
 
     def sync():
         """Synchronize"""
