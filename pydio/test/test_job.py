@@ -21,7 +21,7 @@ class DummyMerger:
     def __init__(self, fn):
         self.fn = fn
 
-    def sync():
+    def sync(self):
         self.fn()
 
 
@@ -55,3 +55,15 @@ class TestDirSyncIfaceEnforcement(TestCase):
             self.merger,
             None
         )
+
+
+class TestJobExecution(TestCase):
+    def test_do_job(self):
+        class JobExecuted(RuntimeError):
+            pass
+
+        def _run():
+            raise JobExecuted
+
+        ds = job.DirSync("test", DummyMerger(_run), DummyLooper())
+        self.assertRaises(JobExecuted, ds.do_job)
