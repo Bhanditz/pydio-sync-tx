@@ -2,6 +2,7 @@
 from twisted.trial.unittest import TestCase
 
 from zope.interface import implementer
+from zope.interface.verify import DoesNotImplement
 
 from pydio import job, ILooper, IMerger
 
@@ -32,5 +33,25 @@ class TestIJob(TestCase):
         )
 
 
-# class TestDirSync(TestCase):
-#     def test_
+class TestDirSyncIfaceEnforcement(TestCase):
+
+    merger = DummyMerger(None)
+    looper = DummyLooper()
+
+    def test_enforce_IMerger(self):
+        self.assertRaises(
+            DoesNotImplement,
+            job.DirSync,
+            "test",
+            None,
+            self.looper
+        )
+
+    def test_enforce_ILooper(self):
+        self.assertRaises(
+            DoesNotImplement,
+            job.DirSync,
+            "test",
+            self.merger,
+            None
+        )
