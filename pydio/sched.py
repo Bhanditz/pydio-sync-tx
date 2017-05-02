@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 import yaml
 import datetime
+import os.path as osp
 
 from zope.interface import implementer
 
@@ -11,6 +12,7 @@ from twisted.internet.task import LoopingCall, deferLater
 from . import ILooper, IMerger
 from .job import DirSync
 from .merger import LocalWorkspace, PydioServerWorkspace, SQLiteMerger
+from .watchdog import LocalDirectoryWatcher, SQLiteEventHandler
 
 
 @implementer(ILooper)
@@ -74,7 +76,7 @@ class PeriodicLoop:
         return self._looping_call.stop()
 
 
-def looper_from_config(freq):
+def looper_from_config(cfg):
     """`looper_from_config` type-checks the `freq` parameter to construct an
     appropriate ILooper.
 
@@ -86,6 +88,8 @@ def looper_from_config(freq):
 
     return : ILooper
     """
+
+    freq = cfg.pop("frequency", 10)
     if isinstance(freq, (int, float)):  # freq represents seconds
         return PeriodicLoop(freq)
     elif isinstance(freq, datetime.time):  # schedule for specific time
@@ -107,22 +111,38 @@ class Scheduler(MultiService):
         """
         super(Scheduler, self).__init__()
 
-        # load jobs
+        # For each job configuration, instantiate the requisite components
+        # and string everything together using (multi)service(s).
         for name, cfg in jobs.items():
             self.log.info("Configuring {name}", name=name)
-
-            # TODO : configure
-
-            local = LocalWorkspace(cfg["directory"])
-            remote = PydioServerWorkspace()
-            merger = SQLiteMerger(local, remote)
-
-            looper = looper_from_config(freq=cfg.pop("frequency", 10))
-
-            self.addService(DirSync(name, merger, looper))
+            self.addService(self.assemble_job_from_config(name, cfg))
 
     def __str__(self):
         return "<Scheduler with {0} jobs>".format(len(self.services))
+
+    @staticmethod
+    def assemble_job_from_config(name, cfg):
+        """Convenience method to instantiate IJob components, string them
+        together, and return an IJob that is ready to be passed to
+        `IService.addService`.
+
+        You probably shouldn't be calling this directly.
+        """
+        local = LocalWorkspace.from_config(cfg)
+        remote = PydioServerWorkspace.from_config(cfg)
+
+        merger = SQLiteMerger(local, remote)
+        looper = looper_from_config(cfg)
+
+        job = DirSync(name, looper, merger)
+
+        handler = SQLiteEventHandler.from_config("pydio.sqlite", cfg)
+
+        watcher = LocalDirectoryWatcher()
+        watcher.register_handler(cfg["directory"], handler)
+
+        job.addService(watcher)
+        return job
 
     def startService(self):
         self.log.info("Starting scheduler")

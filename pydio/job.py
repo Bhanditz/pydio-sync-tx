@@ -5,7 +5,7 @@ from zope.interface import Interface, implementer
 from zope.interface.verify import verifyObject
 
 from twisted.logger import Logger
-from twisted.application.service import Service
+from twisted.application.service import MultiService
 
 from watchdog.observers import Observer
 
@@ -49,7 +49,7 @@ from . import IJob, IMerger, ILooper
 
 
 @implementer(IJob)
-class DirSync(Service):
+class DirSync(MultiService):
     """Implements watchdog.events.EventHandler.  When a relevant event is
     received, a sync run is scheduled on the reactor.
 
@@ -62,14 +62,15 @@ class DirSync(Service):
     """
     log = Logger()
 
-    def __init__(self, name, merger, looper):
+    def __init__(self, name, looper, merger):
+        super().__init__()
         self.name = name  # enforce named services
-
-        verifyObject(IMerger, merger)
-        self._merger = merger
 
         verifyObject(ILooper, looper)
         self._looper = looper
+
+        verifyObject(IMerger, merger)
+        self._merger = merger
 
     def do_job(self):
         """Run the sync job.

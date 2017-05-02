@@ -35,16 +35,16 @@ class TestIJob(TestCase):
 
 class TestDirSyncIfaceEnforcement(TestCase):
 
-    merger = DummyMerger(None)
     looper = DummyLooper()
+    merger = DummyMerger(None)
 
     def test_enforce_IMerger(self):
         self.assertRaises(
             DoesNotImplement,
             job.DirSync,
             "test",
+            self.looper,
             None,
-            self.looper
         )
 
     def test_enforce_ILooper(self):
@@ -52,8 +52,8 @@ class TestDirSyncIfaceEnforcement(TestCase):
             DoesNotImplement,
             job.DirSync,
             "test",
+            None,
             self.merger,
-            None
         )
 
 
@@ -65,5 +65,5 @@ class TestJobExecution(TestCase):
         def _run():
             raise JobExecuted
 
-        ds = job.DirSync("test", DummyMerger(_run), DummyLooper())
+        ds = job.DirSync("test", DummyLooper(), DummyMerger(_run))
         self.assertRaises(JobExecuted, ds.do_job)

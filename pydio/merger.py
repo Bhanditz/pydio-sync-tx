@@ -31,6 +31,13 @@ class PydioServerWorkspace:
     # def __init__(self):
     #     pass
 
+    # def __str__(self):
+    #     return "`{0}`".format(self.addr)
+
+    @classmethod
+    def from_config(cls, cfg):
+        return cls()  # TODO : consume config
+
     @defer.inlineCallbacks
     def get_changes(self, idx):
         raise NotImplementedError
@@ -49,6 +56,13 @@ class LocalWorkspace:
 
     def __init__(self, dir):
         self._dir = dir
+
+    def __str__(self):
+        return "`{0}`".format(self._dir)
+
+    @classmethod
+    def from_config(cls, cfg):
+        return cls(cfg["directory"])
 
     @property
     def dir(self):

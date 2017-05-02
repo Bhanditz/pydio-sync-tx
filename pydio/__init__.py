@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 from zope.interface import Interface
 
+from twisted.application.service import IService
+
 
 class IJob(Interface):
     """A pre-configured task that can be called repeatedly.
@@ -34,7 +36,42 @@ class ISynchronizable(Interface):
 
 
 class IMerger(Interface):
-    """IMplements merge logic for two or more ISynchronizables"""
+    """Implements merge logic for two or more ISynchronizables"""
 
     def sync():
         """Synchronize"""
+
+
+class IWatcher(IService):
+    """Monitors a directory for changes and notifies an EventHandler"""
+
+    def register_handler(path, handler, recursive=True):
+        """Register an IEventHandler to the watcher and receive notifications
+        for events pertaining to the specified path.
+        """
+
+
+class IEventHandler(IService):
+    """Receive events from an IWatcher"""
+
+    def dispatch(ev):
+        """Dispatches events to the appropriate methods"""
+
+    def on_any_event(ev):
+        """Catch-all callback"""
+
+
+class IDiffHandler(IEventHandler):
+    """Handle events pertaining to basic resource modification"""
+
+    def on_created(ev):
+        """Called when an inode is created"""
+
+    def on_deleted(ev):
+        """Called when an inode is deleted"""
+
+    def on_modified(ev):
+        """Called when an existing inode is modified"""
+
+    def on_moved(ev):
+        """Called when an existing inode is moved"""

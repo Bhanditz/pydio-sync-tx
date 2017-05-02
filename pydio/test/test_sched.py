@@ -22,7 +22,7 @@ class TestILooper(TestCase):
 
 class TestILooperConfig(TestCase):
     def test_from_int(self):
-        looper = sched.looper_from_config(1)
+        looper = sched.looper_from_config({"frequency": 1})
         self.assertIsInstance(
             looper,
             sched.PeriodicLoop,
@@ -30,7 +30,7 @@ class TestILooperConfig(TestCase):
         )
 
     def test_from_float(self):
-        looper = sched.looper_from_config(1.0)
+        looper = sched.looper_from_config({"frequency": 1.0})
         self.assertIsInstance(
             looper,
             sched.PeriodicLoop,
@@ -39,7 +39,7 @@ class TestILooperConfig(TestCase):
 
     def test_from_time(self):
         from datetime import datetime, time
-        looper = sched.looper_from_config(datetime.now().time())
+        looper = sched.looper_from_config({"frequency": datetime.now().time()})
         self.assertIsInstance(
             looper,
             sched.ClockLoop,

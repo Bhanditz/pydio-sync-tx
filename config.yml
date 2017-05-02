@@ -1,6 +1,6 @@
 # sandbox.pydio.com-my-files:
 #   active: true
-#   direction: bi
+#   direction: None # => "bi"
 #   directory: /Users/lthibault/Pydio/My Files
 #   filters:
 #     excludes: [.*, '*/.*', /recycle_bin*, '*.pydio_dl', '*.DS_Store', .~lock.*, ~*,
@@ -10,7 +10,7 @@
 #   hide_bi_dir: 'false'
 #   hide_down_dir: 'false'
 #   hide_up_dir: 'false'
-#   id: sandbox.pydio.com-my-files
+#   # id: sandbox.pydio.com-my-files
 #   label: Pydio Enterprise - My Files
 #   poolsize: 4
 #   remote_folder: ''
