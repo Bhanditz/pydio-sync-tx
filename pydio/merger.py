@@ -45,7 +45,10 @@ class PydioServerWorkspace:
         raise NotImplementedError
 
     def assert_ready(self):
+        #
+        # NOTE:  YOU ARE HERE
         # TODO:  implement based on remote SDK
+        #
         raise  NotImplementedError
 
 
@@ -141,11 +144,13 @@ class SQLiteMerger:
     @defer.inlineCallbacks
     def _merge(self):
         with self._lock_for_sync_run():
-            # TODO init_global_progress()
+            # TODO init_global_progress() (needed?  Probably, for WebUI feedback)
 
             yield self.assert_volumes_ready()
-            # self._load_directory_snapshots()
-            # self._wait_db_lock()
+
+            # NOTE:  these can probably be merged into _load_diffs(), or something
+            # self._load_directory_snapshots()  # TODO
+            # self._wait_db_lock()              # TODO
 
             yield self._fetch_changes()
             # merge()

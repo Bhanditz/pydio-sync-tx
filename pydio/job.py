@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 import datetime
 
+from zope.interface import Interface, implementer
+
 from twisted.logger import Logger
 from twisted.application.service import Service
 
@@ -43,7 +45,12 @@ from watchdog.observers import Observer
 #     return any(map(lambda glb: fnmatch(path, glb), globlist))
 
 
+class IJob(Interface):
+    def do_job():
+        """Perform one iteration of the job at hand"""
 
+
+@implementer(IJob)
 class Job(Service):
     """Implements watchdog.events.EventHandler.  When a relevant event is
     received, a sync run is scheduled on the reactor.
@@ -62,13 +69,21 @@ class Job(Service):
         self._merger = merger
         self._looper = looper
 
+    def do_job(self):
+        """Run the sync job.
+
+        This exported method serves as an interface from which manual sync jobs
+        can be triggered by the scheduler.
+        """
+        self._merger.sync()
+
     def startService(self):
         super(Job, self).startService()
-        if self._starter is None:
+        if self._looper is None:
             self.log.info("{name} synchronization set to manual", name=self.name)
             return
 
-        return self._looper.start_loop(self._merger.sync)
+        return self._looper.start_loop(self.do_job)
 
     def stopService(self):
         super(Job, self).stopService()

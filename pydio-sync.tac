@@ -22,15 +22,14 @@ if not osp.exists(USR_DATA_DIR):
 
 # Load app configuration
 with open(osp.join(USR_DATA_DIR, "config.yml")) as f:
-    cfg = yaml.load(f)
+    cfg = yaml.safe_load(f)
 
 # This is the core part of any tac file, the creation of the root-level
 # application object.
 application = service.Application(APP_NAME)
 
 # load the scheduler component
-jobs_config = osp.join(USR_DATA_DIR, cfg["services"].pop("sched").pop("jobs"))
-sched = Scheduler(jobs_config)
+sched = Scheduler(cfg)
 sched.setServiceParent(application)
 
 # load the webUI component

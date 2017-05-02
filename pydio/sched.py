@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-import json
+import yaml
 import datetime
 
 from zope.interface import Interface, implementer
@@ -8,6 +8,7 @@ from twisted.logger import Logger
 from twisted.application.service import MultiService
 from twisted.internet.task import LoopingCall, deferLater
 
+from .job import Job
 from .merger import LocalWorkspace, PydioServerWorkspace, SQLiteMerger
 
 
@@ -107,26 +108,27 @@ class Scheduler(MultiService):
     """
     log = Logger()
 
-    def __init__(self, job_cfg_path):
-        """job_cfg_path : str
-            String containing a path to a valid job configuration file
+    def __init__(self, jobs):
+        """
+        jobs : dict
+            {job name : configuration options}
+
         """
         super(Scheduler, self).__init__()
 
         # load jobs
-        with open(job_cfg_path) as f:
-            for name, cfg in json.load(f).items():
-                self.log.info("Configuring {name}", name=name)
+        for name, cfg in jobs.items():
+            self.log.info("Configuring {name}", name=name)
 
-                # TODO : configure
+            # TODO : configure
 
-                local = LocalWorkspace(cfg["directory"])
-                remote = RemoteWorkspace()
-                merger = SQLiteMerger(local, remote)
+            local = LocalWorkspace(cfg["directory"])
+            remote = PydioServerWorkspace()
+            merger = SQLiteMerger(local, remote)
 
-                looper = looper_from_config(freq = cfg.pop("frequency", 10))
+            looper = looper_from_config(freq=cfg.pop("frequency", 10))
 
-                self.addService(Job(name, merger, looper))
+            self.addService(Job(name, merger, looper))
 
     def __str__(self):
         return "<Scheduler with {0} jobs>".format(len(self.services))
