@@ -32,13 +32,13 @@ def filter_events(method):
 
 
 @implementer(IWatcher)
-class LocalDirectoryWatcher(MultiService):
+class LocalDirectoryWatcher(MultiService, Observer):
 
     log = Logger()
 
     def __init__(self):
-        super().__init__()
-        self._obs = Observer()
+        MultiService.__init__(self)
+        Observer.__init__(self)
 
     def register_handler(self, path, handler, recursive=True):
         """Register an IEventHandler to the directory observer, and register the
@@ -47,14 +47,14 @@ class LocalDirectoryWatcher(MultiService):
 
         verifyObject(IDiffHandler, handler)
         self.addService(handler)
-        self._obs.schedule(handler, path, recursive=recursive)
+        self.schedule(handler, path, recursive=recursive)
 
     def startService(self):
-        self._obs.start()
+        self.start()
 
     def stopService(self):
-        self._obs.stop()
-        return deferToThread(self._obs.join)
+        self.stop()
+        return deferToThread(self.join)
 
 
 @implementer(IDiffHandler, ISelectiveEventHandler)
@@ -69,9 +69,7 @@ class SQLiteEventHandler(Service, FileSystemEventHandler):
         self._dbpath = dbpath
         self._filt = filters
 
-        self._dbpool = adbapi.ConnectionPool(
-            "sqlite3", dbpath, check_same_thread=False
-        )
+        self._dbpool = None
 
     @property
     def include(self):
@@ -98,21 +96,38 @@ class SQLiteEventHandler(Service, FileSystemEventHandler):
 
     def on_created(self, ev):
         """Called when an inode is created"""
+        self.log.debug("{e.event_type} {e.src_path}", e=ev)
 
     def on_deleted(self, ev):
         """Called when an inode is deleted"""
+        self.log.debug("{e.event_type} {e.src_path}", e=ev)
 
     def on_modified(self, ev):
         """Called when an existing inode is modified"""
+        self.log.debug("{e.event_type} {e.src_path}", e=ev)
 
     def on_moved(self, ev):
         """Called when an existing inode is moved"""
+        self.log.debug("{e.event_type} {e.src_path}", e=ev)
 
     def startService(self):
         Service.startService(self)
+        self.open()
 
     def stopService(self):
         Service.stopService(self)
+        self.close()
+
+    def open(self):
+        """Intended for test fixtures.  You probably don't want to call this
+        directly.  Use this class as an IService instead."""
+        self._dbpool = adbapi.ConnectionPool(
+            "sqlite3", self._dbpath, check_same_thread=False
+        )
+
+    def close(self):
+        """Intended for test fixtures.  You probably don't want to call this
+        directly.  Use this class as an IService instead."""
         self._dbpool.close()
 
     @staticmethod
