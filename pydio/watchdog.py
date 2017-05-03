@@ -4,6 +4,7 @@ import os.path as osp
 from zope.interface import implementer
 from zope.interface.verify import verifyObject
 
+from twisted.logger import Logger
 from twisted.application.service import Service, MultiService
 from twisted.internet.threads import deferToThread
 
@@ -15,6 +16,9 @@ from pydio import IWatcher, IDiffHandler
 
 @implementer(IWatcher)
 class LocalDirectoryWatcher(MultiService):
+
+    log = Logger()
+
     def __init__(self):
         super().__init__()
         self._obs = Observer()
@@ -38,6 +42,9 @@ class LocalDirectoryWatcher(MultiService):
 
 @implementer(IDiffHandler)
 class SQLiteEventHandler(Service, FileSystemEventHandler):
+
+    log = Logger()
+
     def __init__(self, dbpath, filters):
         super().__init__()
         self._dbpath = dbpath
@@ -69,3 +76,9 @@ class SQLiteEventHandler(Service, FileSystemEventHandler):
 
     def on_moved(self, ev):
         """Called when an existing inode is moved"""
+
+    def startService(self):
+        super().startService()
+
+    def stopService(self):
+        super().stopService()
