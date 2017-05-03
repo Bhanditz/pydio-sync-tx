@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-from zope.interface import Interface
+from zope.interface import Interface, Attribute
 
 from twisted.application.service import IService
 
@@ -75,3 +75,11 @@ class IDiffHandler(IEventHandler):
 
     def on_moved(ev):
         """Called when an existing inode is moved"""
+
+
+class ISelectiveEventHandler(IEventHandler):
+    include = Attribute("whitelist of UNIX glob patterns")
+    exclude = Attribute("blacklist of UNIX glob patterns")
+
+    def match_any(globlist, path):
+        """Implements the matching logic using `include` and `exclude`"""

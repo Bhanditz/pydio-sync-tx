@@ -11,42 +11,6 @@ from watchdog.observers import Observer
 
 from . import IJob, IMerger, ILooper
 
-# DEFAULT_WHITELIST = ("*",)
-# DEFAULT_BLACKLIST = (
-#     ".*",
-#     "*/.*",
-#     "/recycle_bin*",
-#     "*.pydio_dl",
-#     "*.DS_Store",
-#     ".~lock.*",
-#     "~*",
-#     "*.xlk",
-#     "*.tmp"
-# )
-
-
-
-
-# def filter_events(method):
-#     """filter_events decorates watchdog.events.EventHandler methods such that
-#     events that are not inclusively matched by a job's whitelist and exclusively
-#     matched by that same job's blacklist are ignored.
-#     """
-#     @wraps(method)
-#     def wrapper(self, event):
-#         included = match_any(self.includes, event.dest_path)
-#         excluded = match_any(self.excludes, event.dest_path)
-#         if included and not excluded:
-#             return method(self, event)
-#     return wrapper
-#
-#
-# def match_any(globlist, path):
-#     """Returns true if the path is matched by at least one of the UNIX wildcard
-#     expressions in `globlist`.
-#     """
-#     return any(map(lambda glb: fnmatch(path, glb), globlist))
-
 
 @implementer(IJob)
 class DirSync(MultiService):

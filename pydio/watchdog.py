@@ -1,17 +1,34 @@
 #! /usr/bin/env/python
 import os.path as osp
+from fnmatch import fnmatch
+from functools import wraps
 
 from zope.interface import implementer
 from zope.interface.verify import verifyObject
 
 from twisted.logger import Logger
-from twisted.application.service import Service, MultiService
+from twisted.enterprise import adbapi
 from twisted.internet.threads import deferToThread
+from twisted.application.service import Service, MultiService
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from pydio import IWatcher, IDiffHandler
+from pydio import IWatcher, IDiffHandler, ISelectiveEventHandler
+
+
+def filter_events(method):
+    """filter_events decorates EventHandler methods such that
+    events that are not inclusively matched by a job's whitelist and exclusively
+    matched by that same job's blacklist are ignored.
+    """
+    @wraps(method)
+    def wrapper(self, ev):
+        included = self.match_any(self.include, ev.dest_path)
+        excluded = self.match_any(self.exclude, ev.dest_path)
+        if included and not excluded:
+            return method(self, ev)
+    return wrapper
 
 
 @implementer(IWatcher)
@@ -40,7 +57,7 @@ class LocalDirectoryWatcher(MultiService):
         return deferToThread(self._obs.join)
 
 
-@implementer(IDiffHandler)
+@implementer(IDiffHandler, ISelectiveEventHandler)
 class SQLiteEventHandler(Service, FileSystemEventHandler):
 
     log = Logger()
@@ -50,6 +67,10 @@ class SQLiteEventHandler(Service, FileSystemEventHandler):
         self._dbpath = dbpath
         self._filt = filters
 
+        self._dbpool = adbapi.ConnectionPool(
+            "sqlite3", dbpath, check_same_thread=False
+        )
+
     @property
     def include(self):
         return tuple(self._filt["includes"])
@@ -58,12 +79,20 @@ class SQLiteEventHandler(Service, FileSystemEventHandler):
     def exclude(self):
         return tuple(self._filt["excludes"])
 
+
     @classmethod
     def from_config(cls, file, cfg):
         return cls(
             dbpath=osp.join(cfg["directory"], "pydio.sqlite"),
             filters=cfg["filters"],
         )
+
+    @filter_events
+    def dispatch(self, ev):
+        # Filtering events at the IEventHandler.dispatch level ensures that
+        # on_* methods will only be called with events of interest.
+        # (See watchdog.events.FileSystemEventHandler for details)
+        super().dispatch(ev)
 
     def on_created(self, ev):
         """Called when an inode is created"""
@@ -82,3 +111,11 @@ class SQLiteEventHandler(Service, FileSystemEventHandler):
 
     def stopService(self):
         super().stopService()
+        self._dbpool.close()
+
+    @staticmethod
+    def match_any(globlist, path):
+        """Returns true if the path is matched by at least one of the UNIX wildcard
+        expressions in `globlist`.
+        """
+        return any(map(lambda glb: fnmatch(path, glb), globlist))
