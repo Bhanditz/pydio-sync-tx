@@ -63,7 +63,9 @@ class SQLiteEventHandler(Service, FileSystemEventHandler):
     log = Logger()
 
     def __init__(self, dbpath, filters):
-        super().__init__()
+        Service.__init__(self)
+        FileSystemEventHandler.__init__(self)
+
         self._dbpath = dbpath
         self._filt = filters
 
@@ -92,7 +94,7 @@ class SQLiteEventHandler(Service, FileSystemEventHandler):
         # Filtering events at the IEventHandler.dispatch level ensures that
         # on_* methods will only be called with events of interest.
         # (See watchdog.events.FileSystemEventHandler for details)
-        super().dispatch(ev)
+        FileSystemEventHandler.dispatch(self, ev)
 
     def on_created(self, ev):
         """Called when an inode is created"""
@@ -107,10 +109,10 @@ class SQLiteEventHandler(Service, FileSystemEventHandler):
         """Called when an existing inode is moved"""
 
     def startService(self):
-        super().startService()
+        Service.startService(self)
 
     def stopService(self):
-        super().stopService()
+        Service.stopService(self)
         self._dbpool.close()
 
     @staticmethod
