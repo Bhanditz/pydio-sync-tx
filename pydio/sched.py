@@ -109,7 +109,7 @@ class Scheduler(MultiService):
             {job name : configuration options}
 
         """
-        super(Scheduler, self).__init__()
+        super().__init__()
 
         # For each job configuration, instantiate the requisite components
         # and string everything together using (multi)service(s).
@@ -146,8 +146,8 @@ class Scheduler(MultiService):
 
     def startService(self):
         self.log.info("Starting scheduler")
-        super(Scheduler, self).startService()
+        super().startService()
 
     def stopService(self):
         self.log.warn("Stopping scheduler")
-        super(Scheduler, self).stopService()
+        super().stopService()

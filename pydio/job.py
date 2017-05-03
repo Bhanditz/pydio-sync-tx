@@ -81,7 +81,7 @@ class DirSync(MultiService):
         self._merger.sync()
 
     def startService(self):
-        super(DirSync, self).startService()
+        super().startService()
         if self._looper is None:
             self.log.info("{name} synchronization set to manual", name=self.name)
             return
@@ -89,6 +89,6 @@ class DirSync(MultiService):
         return self._looper.start_loop(self.do_job)
 
     def stopService(self):
-        super(DirSync, self).stopService()
+        super().stopService()
         if self._looper is not None:
             return self._looper.stop_loop()
