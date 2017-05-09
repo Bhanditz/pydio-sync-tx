@@ -1,15 +1,13 @@
 #! /usr/bin/env python
-import yaml
 import datetime
-import os.path as osp
 
 from zope.interface import implementer
 
 from twisted.logger import Logger
 from twisted.application.service import MultiService
-from twisted.internet.task import LoopingCall, deferLater
+from twisted.internet.task import LoopingCall
 
-from . import ILooper, IMerger
+from . import ILooper
 from .job import DirSync
 from .merger import LocalWorkspace, PydioServerWorkspace, SQLiteMerger
 from .watchdog import LocalDirectoryWatcher, SQLiteEventHandler
@@ -23,18 +21,12 @@ class ClockLoop:
             raise TypeError(
                 "expected datetime.datetime, got {0}".format(type(t))
             )
-        self.scheduled_time = t
+        self._scheduled_time = t
 
     @property
     def next_run(self):
         """Returns a datetime.datetime with the next scheduled run"""
-        return datetime.datetime(
-            year=t0.year,
-            month=t0.month,
-            day=t0.day,
-            hour=self.scheduled_time.hour,
-            minute=self.scheduled_time.minute,
-        )
+        return self._scheduled_time
 
     def _calc_time_delta(self):
         """calc_time_delta takes a datetime.time, `t`, and returns a
