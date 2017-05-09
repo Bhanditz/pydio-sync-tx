@@ -1,5 +1,6 @@
 #! /user/bin/env python
 import os.path as osp
+from functools import partial
 from contextlib import contextmanager
 
 from zope.interface import implementer
@@ -7,10 +8,10 @@ from zope.interface.verify import verifyObject
 
 from twisted.logger import Logger
 from twisted.internet import defer
+from twisted.enterprise import adbapi
 from twisted.internet.threads import deferToThread
 
 from . import ISynchronizable, IMerger
-
 
 
 @implementer(ISynchronizable)
@@ -39,7 +40,7 @@ class PydioServerWorkspace:
         return cls()  # TODO : consume config
 
     @defer.inlineCallbacks
-    def get_changes(self, idx):
+    def get_changes(self):
         raise NotImplementedError
 
     def assert_ready(self):
@@ -54,8 +55,19 @@ class PydioServerWorkspace:
 class LocalWorkspace:
     """An ISynchronizable interface to a local Pydio workspace directory"""
 
+    log = Logger()
+
     def __init__(self, dir):
         self._dir = dir
+        self.dbpool = adbapi.ConnectionPool(
+            "sqlite3",
+            # NOTE: talbe was originally pydio.sqlite
+            # TODO : clean up tables periodically
+            ":memory:",
+            check_same_thread=False
+        )
+
+        self.idx = 0
 
     def __str__(self):
         return "`{0}`".format(self._dir)
@@ -69,9 +81,25 @@ class LocalWorkspace:
         """Local directory being watched"""
         return self._dir
 
-    @defer.inlineCallbacks
-    def get_changes(self, idx):
-        raise NotImplementedError
+    def get_changes(self):
+        self.log.debug("fetching local changes.  Local sequence = {w.idx}", w=self)
+
+        return self.dbpool.runQuery((
+            "SELECT seq , ajxp_changes.node_id ,  type ,  source , target, "
+            "ajxp_index.bytesize, ajxp_index.md5, ajxp_index.mtime, "
+            "ajxp_index.node_path, ajxp_index.stat_result FROM ajxp_changes "
+            "LEFT JOIN ajxp_index ON ajxp_changes.node_id = ajxp_index.node_id "
+            "WHERE seq > ? ORDER BY ajxp_changes.node_id, seq ASC"
+        ), (self.idx,)).addCallback(partial(map, self.flatten_row))
+
+        # for row in raw_changes:
+        #     # update sequence number
+        #     # flatten row
+        #
+        # # TODO : flatten and store global in caller
+
+
+
 
     @defer.inlineCallbacks
     def assert_ready(self):

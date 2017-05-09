@@ -6,7 +6,6 @@ from tempfile import mkdtemp
 
 from zope.interface import implementer
 from zope.interface.verify import DoesNotImplement
-from twisted.internet.defer import inlineCallbacks
 
 from pydio import merger, ISynchronizable
 
@@ -16,11 +15,17 @@ class DummySynchronizable:
     """A null-op class that satisfies ISynchronizable for testing
     purposes
     """
-    def get_changes(self, idx):
-        pass
+    idx = None
+
+    def __init__(self, fail_assertion=False):
+        self.fail_assertion = fail_assertion
+
+    def get_changes(self):
+        raise NotImplementedError
 
     def assert_ready(self):
-        pass
+        if self.fail_assertion:
+            raise AssertionError("testing failure case")
 
 
 class TestISynchronizable(TestCase):
@@ -134,22 +139,10 @@ class TestLocalWorkspace(TestCase):
         self.assertFailure(self.ws.assert_ready())
 
 
-@implementer(ISynchronizable)
-class DummyWorkspace():
-    def __init__(self, fail_assertion=False):
-        self.fail_assertion = fail_assertion
-
-    def get_changes(self, idx):
-        raise NotImplementedError
-
-    def assert_ready(self):
-        if self.fail_assertion:
-            raise AssertionError("testing failure case")
-
 class TestSQLiteMergerSync(TestCase):
     def setUp(self):
-        self.local = DummyWorkspace()
-        self.remote = DummyWorkspace()
+        self.local = DummySynchronizable()
+        self.remote = DummySynchronizable()
         self.merger = merger.SQLiteMerger(self.local, self.remote)
 
     def tearDown(self):

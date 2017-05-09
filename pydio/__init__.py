@@ -26,8 +26,10 @@ class ILooper(Interface):
 class ISynchronizable(Interface):
     """Represents one side of a synchronization equation"""
 
-    def get_changes(idx):
-        """Get changes with a higher index than `idx`"""
+    idx = Attribute("Synchronization sequence index")
+
+    def get_changes():
+        """Get changes since last call"""
 
     def assert_ready():
         """Assert that ISynchronizable is available and consistent, i.e. it is
