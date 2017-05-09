@@ -1,0 +1,22 @@
+sandbox.pydio.com-my-files:
+  active: true
+  direction: null # => "bi"
+  directory: /Users/lthibault/Pydio/My Files
+  filters:
+    excludes: [.*, '*/.*', /recycle_bin*, '*.pydio_dl', '*.DS_Store', .~lock.*, ~*,
+      '*.xlk', '*.tmp']
+    includes: ['*']
+  frequency: 10
+  hide_bi_dir: false
+  hide_down_dir: false
+  hide_up_dir: false
+  label: Pydio Enterprise - My Files
+  poolsize: 4
+  remote_folder: ''
+  server: http://sandbox.pydio.com/enterprise
+  solve: both
+  start_time: {h: 0, m: 0}
+  timeout: 20
+  trust_ssl: false
+  user: louis
+  workspace: my-files
