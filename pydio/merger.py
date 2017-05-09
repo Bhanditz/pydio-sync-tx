@@ -67,7 +67,11 @@ class LocalWorkspace:
             check_same_thread=False
         )
 
-        self.idx = 0
+        self._idx = 0
+
+    @property
+    def idx(self):
+        return self._idx
 
     def __str__(self):
         return "`{0}`".format(self._dir)
