@@ -58,6 +58,8 @@ class LocalWorkspace:
     log = Logger()
 
     def __init__(self, dir):
+        self._idx = None
+
         self._dir = dir
         self.dbpool = adbapi.ConnectionPool(
             "sqlite3",
@@ -66,8 +68,6 @@ class LocalWorkspace:
             ":memory:",
             check_same_thread=False
         )
-
-        self._idx = 0
 
     @property
     def idx(self):
@@ -85,25 +85,19 @@ class LocalWorkspace:
         """Local directory being watched"""
         return self._dir
 
+    @defer.inlineCallbacks
     def get_changes(self):
         self.log.debug("fetching local changes.  Local sequence = {w.idx}", w=self)
 
-        return self.dbpool.runQuery((
+        raw_changes = yield self.dbpool.runQuery((
             "SELECT seq , ajxp_changes.node_id ,  type ,  source , target, "
             "ajxp_index.bytesize, ajxp_index.md5, ajxp_index.mtime, "
             "ajxp_index.node_path, ajxp_index.stat_result FROM ajxp_changes "
             "LEFT JOIN ajxp_index ON ajxp_changes.node_id = ajxp_index.node_id "
             "WHERE seq > ? ORDER BY ajxp_changes.node_id, seq ASC"
-        ), (self.idx,)).addCallback(partial(map, self.flatten_row))
+        ), (self.idx,))
 
-        # for row in raw_changes:
-        #     # update sequence number
-        #     # flatten row
-        #
-        # # TODO : flatten and store global in caller
-
-
-
+        raise NotImplementedError  # XXX : YOU ARE HERE
 
     @defer.inlineCallbacks
     def assert_ready(self):
