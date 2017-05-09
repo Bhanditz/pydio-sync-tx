@@ -1,13 +1,9 @@
 #! /usr/bin/env python
-import datetime
-
-from zope.interface import Interface, implementer
+from zope.interface import implementer
 from zope.interface.verify import verifyObject
 
 from twisted.logger import Logger
 from twisted.application.service import MultiService
-
-from watchdog.observers import Observer
 
 from . import IJob, IMerger, ILooper
 
