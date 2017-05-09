@@ -11,7 +11,6 @@ sandbox.pydio.com-my-files:
   hide_down_dir: false
   hide_up_dir: false
   label: Pydio Enterprise - My Files
-  poolsize: 4
   remote_folder: ''
   server: http://sandbox.pydio.com/enterprise
   solve: both
