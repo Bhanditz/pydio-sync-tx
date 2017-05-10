@@ -32,7 +32,7 @@ def filter_events(method):
 
 
 @implementer(IWatcher)
-class LocalDirectoryWatcher(MultiService, Observer):
+class LocalDirectoryWatcher(Service, Observer):
 
     log = Logger()
 
@@ -44,9 +44,7 @@ class LocalDirectoryWatcher(MultiService, Observer):
         """Register an IEventHandler to the directory observer, and register the
         former as a service to IWatcher.
         """
-
         verifyObject(IDiffHandler, handler)
-        self.addService(handler)
         self.schedule(handler, path, recursive=recursive)
 
     def startService(self):
@@ -65,11 +63,7 @@ class SQLiteEventHandler(Service, FileSystemEventHandler):
     def __init__(self, dbpath, filters):
         Service.__init__(self)
         FileSystemEventHandler.__init__(self)
-
-        self._dbpath = dbpath
         self._filt = filters
-
-        self._dbpool = None
 
     @property
     def include(self):
@@ -79,13 +73,12 @@ class SQLiteEventHandler(Service, FileSystemEventHandler):
     def exclude(self):
         return tuple(self._filt["excludes"])
 
-
-    @classmethod
-    def from_config(cls, file, cfg):
-        return cls(
-            dbpath=osp.join(cfg["directory"], "pydio.sqlite"),
-            filters=cfg["filters"],
-        )
+    @staticmethod
+    def match_any(globlist, path):
+        """Returns true if the path is matched by at least one of the UNIX wildcard
+        expressions in `globlist`.
+        """
+        return any(map(lambda glb: fnmatch(path, glb), globlist))
 
     @filter_events
     def dispatch(self, ev):
@@ -109,30 +102,3 @@ class SQLiteEventHandler(Service, FileSystemEventHandler):
     def on_moved(self, ev):
         """Called when an existing inode is moved"""
         self.log.debug("{e.event_type} {e.src_path}", e=ev)
-
-    def startService(self):
-        Service.startService(self)
-        self.open()
-
-    def stopService(self):
-        Service.stopService(self)
-        self.close()
-
-    def open(self):
-        """Intended for test fixtures.  You probably don't want to call this
-        directly.  Use this class as an IService instead."""
-        self._dbpool = adbapi.ConnectionPool(
-            "sqlite3", self._dbpath, check_same_thread=False
-        )
-
-    def close(self):
-        """Intended for test fixtures.  You probably don't want to call this
-        directly.  Use this class as an IService instead."""
-        self._dbpool.close()
-
-    @staticmethod
-    def match_any(globlist, path):
-        """Returns true if the path is matched by at least one of the UNIX wildcard
-        expressions in `globlist`.
-        """
-        return any(map(lambda glb: fnmatch(path, glb), globlist))

@@ -26,7 +26,7 @@ class ILooper(Interface):
 class ISynchronizable(Interface):
     """Represents one side of a synchronization equation"""
 
-    idx = Attribute("Synchronization sequence index")
+    # idx = Attribute("Synchronization sequence index")
 
     def get_changes():
         """Get changes since last call"""

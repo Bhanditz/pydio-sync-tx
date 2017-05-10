@@ -8,9 +8,9 @@ from twisted.application.service import MultiService
 from twisted.internet.task import LoopingCall
 
 from . import ILooper
-from .job import DirSync
-from .merger import LocalWorkspace, PydioServerWorkspace, SQLiteMerger
-from .watchdog import LocalDirectoryWatcher, SQLiteEventHandler
+from .workspace import local, remote
+from .merger import SQLiteMerger
+from .job import SyncJob
 
 
 @implementer(ILooper)
@@ -81,7 +81,7 @@ def looper_from_config(cfg):
     return : ILooper
     """
 
-    freq = cfg.pop("frequency", 10)
+    freq = cfg.pop("frequency", .0250)  # every 250 ms
     if isinstance(freq, (int, float)):  # freq represents seconds
         return PeriodicLoop(freq)
     elif isinstance(freq, datetime.time):  # schedule for specific time
@@ -107,34 +107,20 @@ class Scheduler(MultiService):
         # and string everything together using (multi)service(s).
         for name, cfg in jobs.items():
             self.log.info("Configuring {name}", name=name)
-            self.addService(self.assemble_job_from_config(name, cfg))
+
+            lw = local.Directory(cfg["directory"], filters=cfg["filters"])
+            rw = remote.PydioServer()
+            merger = SQLiteMerger(lw, rw)
+
+            job = SyncJob(name, looper_from_config(cfg), merger)
+            job.addService(lw)
+            job.addService(rw)
+            job.addService(merger)
+
+            self.addService(job)
 
     def __str__(self):
         return "<Scheduler with {0} jobs>".format(len(self.services))
-
-    @staticmethod
-    def assemble_job_from_config(name, cfg):
-        """Convenience method to instantiate IJob components, string them
-        together, and return an IJob that is ready to be passed to
-        `IService.addService`.
-
-        You probably shouldn't be calling this directly.
-        """
-        local = LocalWorkspace.from_config(cfg)
-        remote = PydioServerWorkspace.from_config(cfg)
-
-        merger = SQLiteMerger(local, remote)
-        looper = looper_from_config(cfg)
-
-        job = DirSync(name, looper, merger)
-
-        handler = SQLiteEventHandler.from_config("pydio.sqlite", cfg)
-
-        watcher = LocalDirectoryWatcher()
-        watcher.register_handler(cfg["directory"], handler)
-
-        job.addService(watcher)
-        return job
 
     def startService(self):
         self.log.info("Starting scheduler")

@@ -9,7 +9,7 @@ from . import IJob, IMerger, ILooper
 
 
 @implementer(IJob)
-class DirSync(MultiService):
+class SyncJob(MultiService):
     """Implements watchdog.events.EventHandler.  When a relevant event is
     received, a sync run is scheduled on the reactor.
 

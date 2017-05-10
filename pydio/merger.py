@@ -10,100 +10,9 @@ from twisted.logger import Logger
 from twisted.internet import defer
 from twisted.enterprise import adbapi
 from twisted.internet.threads import deferToThread
+from twisted.application.service import Service
 
 from . import ISynchronizable, IMerger
-
-
-@implementer(ISynchronizable)
-class PydioServerWorkspace:
-    """An ISynchronizable interface to a remote Pydio workspace"""
-
-    # PydioSdk(
-    #         job_config["server"],
-    #         ws_id=self.ws_id,
-    #         remote_folder=job_config["remote_folder"],
-    #         user_id=job_config["user_id"],
-    #         device_id=ConfigManager().device_id,
-    #         skip_ssl_verify=job_config["trust_ssl"],
-    #         proxies=ConfigManager().defined_proxies,
-    #         timeout=job_config["timeout"]
-    #     )
-
-    # def __init__(self):
-    #     pass
-
-    # def __str__(self):
-    #     return "`{0}`".format(self.addr)
-
-    @classmethod
-    def from_config(cls, cfg):
-        return cls()  # TODO : consume config
-
-    @defer.inlineCallbacks
-    def get_changes(self):
-        raise NotImplementedError
-
-    def assert_ready(self):
-        #
-        # NOTE:  YOU ARE HERE
-        # TODO:  implement based on remote SDK
-        #
-        raise  NotImplementedError
-
-
-@implementer(ISynchronizable)
-class LocalWorkspace:
-    """An ISynchronizable interface to a local Pydio workspace directory"""
-
-    log = Logger()
-
-    def __init__(self, dir):
-        self._idx = None
-
-        self._dir = dir
-        self.dbpool = adbapi.ConnectionPool(
-            "sqlite3",
-            # NOTE: talbe was originally pydio.sqlite
-            # TODO : clean up tables periodically
-            ":memory:",
-            check_same_thread=False
-        )
-
-    @property
-    def idx(self):
-        return self._idx
-
-    def __str__(self):
-        return "`{0}`".format(self._dir)
-
-    @classmethod
-    def from_config(cls, cfg):
-        return cls(cfg["directory"])
-
-    @property
-    def dir(self):
-        """Local directory being watched"""
-        return self._dir
-
-    @defer.inlineCallbacks
-    def get_changes(self):
-        self.log.debug("fetching local changes.  Local sequence = {w.idx}", w=self)
-
-        raw_changes = yield self.dbpool.runQuery((
-            "SELECT seq , ajxp_changes.node_id ,  type ,  source , target, "
-            "ajxp_index.bytesize, ajxp_index.md5, ajxp_index.mtime, "
-            "ajxp_index.node_path, ajxp_index.stat_result FROM ajxp_changes "
-            "LEFT JOIN ajxp_index ON ajxp_changes.node_id = ajxp_index.node_id "
-            "WHERE seq > ? ORDER BY ajxp_changes.node_id, seq ASC"
-        ), (self.idx,))
-
-        raise NotImplementedError  # XXX : YOU ARE HERE
-
-    @defer.inlineCallbacks
-    def assert_ready(self):
-        exists = yield deferToThread(osp.exists, self.dir)
-        if not exists:
-            raise IOError("{0} unreachable".format(self.dir))
 
 
 class ConcurrentMerge(RuntimeError):
@@ -112,7 +21,7 @@ class ConcurrentMerge(RuntimeError):
 
 
 @implementer(IMerger)
-class SQLiteMerger:
+class SQLiteMerger(Service):
     """Synchronize two ISynchronizables using an SQLite table"""
 
     log = Logger()
@@ -170,9 +79,12 @@ class SQLiteMerger:
             # TODO init_global_progress() (I think this is needed for WebUI feedback)
 
             yield self.assert_volumes_ready()
-
             yield self._fetch_changes()
-            # merge()
+
+            # NOTE : Consider creating an interface, IMergeStrategy, that
+            #        abstracts away the details of the merge algoritm.
+            
+            # merge()  # TODO
 
     def assert_volumes_ready(self):  # exported because it's a pure function
         """Verify that local and remote sync targets are present, accessible and
