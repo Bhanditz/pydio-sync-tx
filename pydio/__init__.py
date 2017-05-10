@@ -85,3 +85,23 @@ class ISelectiveEventHandler(IEventHandler):
 
     def match_any(globlist, path):
         """Implements the matching logic using `include` and `exclude`"""
+
+
+class IStateManager(Interface):
+    """IStateManager receives changes to inodes and updates the state of an
+    ISynchronizable, usually triggering the creation of a diff as a side-effect.
+    """
+
+    def create(inode, directory=False):
+        """create an inode"""
+
+    def delete(inode, directory=False):
+        """delete an inode"""
+
+    @_log_state_change("modify")
+    def modify(inode, directory=False):
+        """modify an inode"""
+
+    @_log_state_change("move")
+    def move(inode, directory=False):
+        """move an inode"""

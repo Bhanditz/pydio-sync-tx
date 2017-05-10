@@ -17,20 +17,21 @@ from .watchdog import LocalDirectoryWatcher, SQLiteEventHandler
 class Directory(MultiService):
     """An ISynchronizable interface to a local Pydio workspace directory"""
 
-    name = "LocalDirectory"
     log = Logger()
 
     def __init__(self, target_dir, filters=None):
         super().__init__()
 
         self._dir = target_dir
-        self._dbpool = adbapi.ConnectionPool(
+        db = adbapi.ConnectionPool(
             "sqlite3",
             ":memory:",
             check_same_thread=False
         )
 
-        handler = SQLiteEventHandler(":memory:", filters)
+        self._diff_stream = SQLiteDiffStream(db)
+
+        handler = SQLiteEventHandler(SQLiteStateManager(db), filters)
         self.addService(handler)
 
         watcher = LocalDirectoryWatcher()
@@ -39,19 +40,20 @@ class Directory(MultiService):
 
         self._change_queue = defer.DeferredQueue()
 
-    def __str__(self):
+    @property
+    def name(self):
         return "`{0}`".format(self._dir)
+
+    def __str__(self):
+        return self.name
 
     @property
     def idx(self):
         return self._idx
 
-    def startService(self):
-        super().startService()
-
     def stopService(self):
         super().stopService()
-        self._dbpool.close()
+        self._diff_stream.close()
 
     @classmethod
     def from_config(cls, cfg):
@@ -69,4 +71,49 @@ class Directory(MultiService):
             raise IOError("{0} unreachable".format(self.dir))
 
     def get_changes(self):
-        return self._change_queue.get()
+        return self._diff_stream.next()
+
+
+def _log_state_change(verb):
+    def decorator(fn):
+        @wraps(fn)
+        def logger(self, verb, inode, directory):
+            itype = ("file", "directory")[directory]
+            self.log.debug("{v} {0} `{1}`", itype, inode["src_path"], v=verb)
+        return logger
+    return decorator
+
+
+class SQLiteDiffStream:
+    self._db = db
+
+    def next(self):
+        raise NotImplementedError("I shall return a tuple of diffs")
+
+
+@implementer(IStateManager)
+class SQLiteStateManager:
+    """Manages the SQLite database's state, ensuring that it reflects the state
+    of the filesystem.
+    """
+
+    log = Logger()
+
+    def __init__(self, db):
+        self._db = db
+
+    @_log_state_change("create")
+    def create(self, inode, directory=False):
+        raise NotImplementedError("I shall create a new inode in ajxp_index")
+
+    @_log_state_change("delete")
+    def delete(self, inode, directory=False):
+        raise NotImplementedError("I shall delete an inode from ajxp_index")
+
+    @_log_state_change("modify")
+    def modify(self, inode, directory=False):
+        raise NotImplementedError("I shall modify an inode in ajxp_index")
+
+    @_log_state_change("move")
+    def move(self, inode, directory=False):
+        raise NotImplementedError("I shall move an inode in ajxp_index")
