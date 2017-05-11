@@ -18,12 +18,12 @@ SQL_INIT_FILE = osp.join(osp.dirname(__file__), "pydio.sql")
 @implementer(IDiffEngine)
 class Engine(Service):
 
-    log = Logger
+    log = Logger()
 
     def __init__(self, path=":memory:"):
         super().__init__()
 
-        self.log.debug("opening database in {path}", path=path)
+        self.log.debug("opening database in {path}", path=path.strip(":"))
         self._db = ConnectionPool("sqlite3", path, check_same_thread=False)
 
     @inlineCallbacks
