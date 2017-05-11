@@ -28,8 +28,8 @@ class DummyMerger:
 class TestIJob(TestCase):
     def test_DirSync(self):
         self.assertTrue(
-            job.IJob.implementedBy(job.DirSync),
-            "DirSync does not implement IJob",
+            job.IJob.implementedBy(job.SyncJob),
+            "SyncJob does not implement IJob",
         )
 
 
@@ -41,7 +41,7 @@ class TestDirSyncIfaceEnforcement(TestCase):
     def test_enforce_IMerger(self):
         self.assertRaises(
             DoesNotImplement,
-            job.DirSync,
+            job.SyncJob,
             "test",
             self.looper,
             None,
@@ -50,7 +50,7 @@ class TestDirSyncIfaceEnforcement(TestCase):
     def test_enforce_ILooper(self):
         self.assertRaises(
             DoesNotImplement,
-            job.DirSync,
+            job.SyncJob,
             "test",
             None,
             self.merger,
@@ -65,5 +65,5 @@ class TestJobExecution(TestCase):
         def _run():
             raise JobExecuted
 
-        ds = job.DirSync("test", DummyLooper(), DummyMerger(_run))
+        ds = job.SyncJob("test", DummyLooper(), DummyMerger(_run))
         self.assertRaises(JobExecuted, ds.do_job)
