@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-import datetime
+import os.path as osp
 
 from zope.interface import implementer
 
@@ -9,6 +9,7 @@ from twisted.application.internet import TimerService
 from twisted.internet.task import LoopingCall
 
 from .workspace import local, remote
+from .workspace.local.sqlite import SQLiteEngine
 from .merger import SQLiteMerger
 
 from pydio import IMerger
@@ -51,7 +52,13 @@ class Scheduler(MultiService):
         for name, cfg in jobs.items():
             self.log.info("Configuring {name}", name=name)
 
-            lw = local.Directory(cfg["directory"], filters=cfg["filters"])
+            engine = SQLiteEngine(osp.join(osp.dirname(__file__),
+                                           "rsc/sql/create_pydio.sql"))
+            lw = local.Directory(
+                engine,
+                cfg["directory"],
+                filters=cfg["filters"]
+            )
             rw = remote.PydioServer()
             merger = SQLiteMerger(lw, rw)
             trigger = TimerService(cfg.pop("frequency", .025), merger.sync)

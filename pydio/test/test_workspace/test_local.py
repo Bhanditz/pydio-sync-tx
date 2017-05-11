@@ -1,11 +1,24 @@
 #! /usr/bin/env python
 from twisted.trial.unittest import TestCase
 
+import os.path as osp
 from shutil import rmtree
 from tempfile import mkdtemp
 
 from pydio import ISynchronizable
 from pydio.workspace import local
+from pydio.workspace.local.sqlite import SQLiteEngine
+
+ENGINE_SQL_INIT_FILE = osp.join(
+    osp.dirname(osp.dirname(osp.dirname(__file__))),
+    "rsc/sql/create_pydio.sql"
+)
+
+
+class TestResources(TestCase):
+    def test_sql_init_file_exists(self):
+        self.assertTrue(osp.exists(ENGINE_SQL_INIT_FILE),
+                        "could not fine create_pydio.sql")
 
 
 class TestISynchronizable(TestCase):
@@ -19,9 +32,14 @@ class TestISynchronizable(TestCase):
 class TestDirectory(TestCase):
     def setUp(self):
         self.path = mkdtemp(prefix="pydio_test")
-        self.ws = local.Directory(target_dir=self.path)
+        self.ws = local.Directory(
+            SQLiteEngine(ENGINE_SQL_INIT_FILE),
+            target_dir=self.path
+        )
+        return self.ws.startService()
 
     def tearDown(self):
+        self.ws.stopService()
         self.ws = None
         rmtree(self.path)
 

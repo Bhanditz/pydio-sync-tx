@@ -10,8 +10,8 @@ from twisted.enterprise import adbapi
 from twisted.application.service import Service
 
 from pydio import IWatcher, IDiffHandler, ISelectiveEventHandler
-from pydio.workspace import watchdog
-from pydio.workspace.local import SQLiteStateManager
+from pydio.workspace.local import watchdog
+from pydio.workspace.local.sqlite import SQLiteStateManager
 
 
 @implementer(IDiffHandler)
