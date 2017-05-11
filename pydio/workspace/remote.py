@@ -34,11 +34,11 @@ class PydioServer(Service):
 
     @defer.inlineCallbacks
     def get_changes(self):
-        raise NotImplementedError
+        raise  NotImplementedError("p.w.remote.PydioServer")
 
     def assert_ready(self):
         #
         # NOTE:  YOU ARE HERE
         # TODO:  implement based on remote SDK
         #
-        raise  NotImplementedError
+        raise  NotImplementedError("p.w.remote.PydioServer")
