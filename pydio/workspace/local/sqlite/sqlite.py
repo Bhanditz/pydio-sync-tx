@@ -12,6 +12,8 @@ from twisted.enterprise.adbapi import ConnectionPool
 
 from pydio.workspace.local import IDiffEngine, IStateManager, IDiffStream
 
+SQL_INIT_FILE = osp.join(osp.dirname(__file__), "pydio.sql")
+
 
 @implementer(IDiffEngine)
 class Engine(Service):
@@ -20,14 +22,13 @@ class Engine(Service):
 
     def __init__(self, path=":memory:"):
         super().__init__()
+
+        self.log.debug("opening database in {path}", path=path)
         self._db = ConnectionPool("sqlite3", path, check_same_thread=False)
 
     @inlineCallbacks
     def _start(self):
-        f = yield deferToThread(
-            open, osp.join(osp.dirname(__file__), "pydio.sql")
-        )
-
+        f = yield deferToThread(open, SQL_INIT_FILE)
         try:
             for line in f.readlines():
                 yield self._db.runOperation(line)
@@ -38,10 +39,12 @@ class Engine(Service):
         self._db.close()
 
     def startService(self):
+        self.log.debug("initializing database from {path}", path=SQL_INIT_FILE)
         super().startService()
         return self._start()
 
     def stopService(self):
+        self.log.debug("halting")
         super().stopService()
         return self._stop()
 
