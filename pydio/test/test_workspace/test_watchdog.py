@@ -16,7 +16,7 @@ from pydio.workspace.local import (
     watchdog,
 )
 
-from pydio.workspace.local.sqlite import SQLiteStateManager
+from pydio.workspace.local.sqlite import StateManager
 
 
 @implementer(IDiffHandler)

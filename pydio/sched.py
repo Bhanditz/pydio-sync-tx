@@ -1,6 +1,4 @@
 #! /usr/bin/env python
-import os.path as osp
-
 from zope.interface import implementer
 
 from twisted.logger import Logger
@@ -9,7 +7,7 @@ from twisted.application.internet import TimerService
 from twisted.internet.task import LoopingCall
 
 from .workspace import local, remote
-from .workspace.local.sqlite import SQLiteEngine
+from .workspace.local import sqlite
 from .merger import SQLiteMerger
 
 from pydio import IMerger
@@ -52,10 +50,8 @@ class Scheduler(MultiService):
         for name, cfg in jobs.items():
             self.log.info("Configuring {name}", name=name)
 
-            engine = SQLiteEngine(osp.join(osp.dirname(__file__),
-                                           "rsc/sql/create_pydio.sql"))
             lw = local.Directory(
-                engine,
+                sqlite.Engine(),
                 cfg["directory"],
                 filters=cfg["filters"]
             )

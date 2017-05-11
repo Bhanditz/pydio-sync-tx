@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+import os.path as osp
 from functools import wraps
 
 from zope.interface import implementer
@@ -13,18 +14,20 @@ from pydio.workspace.local import IDiffEngine, IStateManager, IDiffStream
 
 
 @implementer(IDiffEngine)
-class SQLiteEngine(Service):
+class Engine(Service):
 
     log = Logger
 
-    def __init__(self, sql_file, path=":memory:"):
+    def __init__(self, path=":memory:"):
         super().__init__()
-        self.sql_file = sql_file
-        self._db =  ConnectionPool("sqlite3", path, check_same_thread=False)
+        self._db = ConnectionPool("sqlite3", path, check_same_thread=False)
 
     @inlineCallbacks
     def _start(self):
-        f = yield deferToThread(open, self.sql_file)
+        f = yield deferToThread(
+            open, osp.join(osp.dirname(__file__), "pydio.sql")
+        )
+
         try:
             for line in f.readlines():
                 yield self._db.runOperation(line)
@@ -44,15 +47,15 @@ class SQLiteEngine(Service):
 
     @property
     def updater(self):
-        return SQLiteStateManager(self._db)
+        return StateManager(self._db)
 
     @property
     def stream(self):
-        return SQLiteDiffStream(self._db)
+        return DiffStream(self._db)
 
 
 @implementer(IDiffStream)
-class SQLiteDiffStream:
+class DiffStream:
 
     log = Logger()
 
@@ -75,7 +78,7 @@ def _log_state_change(verb):
 
 
 @implementer(IStateManager)
-class SQLiteStateManager:
+class StateManager:
     """Manages the SQLite database's state, ensuring that it reflects the state
     of the filesystem.
     """
@@ -100,3 +103,5 @@ class SQLiteStateManager:
     @_log_state_change("move")
     def move(self, inode, directory=False):
         raise NotImplementedError("I shall move an inode in ajxp_index")
+
+__all__ = ["Engine", "DiffStream", "StateManager"]
