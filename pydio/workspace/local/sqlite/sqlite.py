@@ -31,7 +31,7 @@ class Engine(Service):
         f = yield deferToThread(open, SQL_INIT_FILE)
         try:
             for line in f.readlines():
-                yield self._db.runOperation(line)
+                yield self._db.runOperation(line.strip())
         finally:
             f.close()
 
@@ -93,15 +93,29 @@ class StateManager:
 
     @_log_state_change("create")
     def create(self, inode, directory=False):
-        raise NotImplementedError("I shall create a new inode in ajxp_index")
+        params = ("node_path", "bytesize", "md5", "mtime", "stat_result")
+        directive = ("INSERT INTO ajxp_index "
+                     "(node_path,bytesize,md5,mtime,stat_result) VALUES "
+                     "(?,?,?,?,?)")
+        self._db.runQuery(directive, map(inode.get, parms))
 
     @_log_state_change("delete")
     def delete(self, inode, directory=False):
-        raise NotImplementedError("I shall delete an inode from ajxp_index")
+        self._db.runQuery(
+            "DELETE FROM ajxp_index WHERE node_path LIKE ?%",
+            inode["src_path"],
+        )
 
     @_log_state_change("modify")
     def modify(self, inode, directory=False):
-        raise NotImplementedError("I shall modify an inode in ajxp_index")
+        if directory:
+            return  # we'll update the files individually, as we're notified
+
+        params = ("bytesize", "md5", "mtime", "stat_result", "node_path")
+        directive = ("UPDATE ajxp_index "
+                     "SET bytesize=?, md5=?, mtime=?, stat_result=? "
+                     "WHERE node_path=?")
+        self._db.runQuery(directive, map(inode.get, params))
 
     @_log_state_change("move")
     def move(self, inode, directory=False):
