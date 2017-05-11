@@ -4,17 +4,20 @@ from twisted.trial.unittest import TestCase
 from zope.interface import implementer
 from zope.interface.verify import DoesNotImplement
 
+from twisted.application.service import Service
+
 from pydio import merger, ISynchronizable
 
 
 @implementer(ISynchronizable)
-class DummySynchronizable:
+class DummySynchronizable(Service):
     """A null-op class that satisfies ISynchronizable for testing
     purposes
     """
     idx = None
 
     def __init__(self, fail_assertion=False):
+        super().__init__()
         self.fail_assertion = fail_assertion
 
     def get_changes(self):

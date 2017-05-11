@@ -4,26 +4,7 @@ from zope.interface import Interface, Attribute
 from twisted.application.service import IService
 
 
-class IJob(Interface):
-    """A pre-configured task that can be called repeatedly.
-    IJobs are scheduled for execution by pydio.sched.Scheduler.
-    """
-
-    def do_job():
-        """Perform one iteration of the job at hand"""
-
-
-class ILooper(Interface):
-    """Provides fine-grained control over periodic, deferred actions."""
-
-    def start_loop(fn):
-        """Enter the loop, calling `fn` at each iteration"""
-
-    def stop_loop():
-        """Exit the loop"""
-
-
-class ISynchronizable(Interface):
+class ISynchronizable(IService):
     """Represents one side of a synchronization equation"""
 
     # idx = Attribute("Synchronization sequence index")
