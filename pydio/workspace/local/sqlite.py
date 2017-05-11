@@ -4,8 +4,9 @@ from functools import wraps
 from zope.interface import implementer
 
 from twisted.logger import Logger
-from twisted.internet import defer
 from twisted.application.service import Service
+from twisted.internet.defer import inlineCallbacks
+from twisted.internet.threads import deferToThread
 from twisted.enterprise.adbapi import ConnectionPool
 
 from pydio.workspace import IDiffEngine, IStateManager, IDiffStream
@@ -21,11 +22,14 @@ class SQLiteEngine(Service):
         self.sql_file = sql_file
         self._db =  ConnectionPool("sqlite3", path, check_same_thread=False)
 
-    @defer.inlineCallbacks
+    @inlineCallbacks
     def _start(self):
-        with open(self.sql_file) as f:
+        f = yield deferToThread(open, self.sql_file)
+        try:
             for line in f.readlines():
                 yield self._db.runOperation(line)
+        finally:
+            f.close()
 
     def _stop(self):
         self._db.close()
