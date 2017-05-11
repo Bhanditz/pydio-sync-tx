@@ -98,10 +98,8 @@ class IStateManager(Interface):
     def delete(inode, directory=False):
         """delete an inode"""
 
-    @_log_state_change("modify")
     def modify(inode, directory=False):
         """modify an inode"""
 
-    @_log_state_change("move")
     def move(inode, directory=False):
         """move an inode"""
