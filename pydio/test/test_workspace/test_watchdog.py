@@ -98,24 +98,3 @@ class TestLocalDirectoryWatcher(TestCase):
                        self.watcher._handlers.values()),
                 "handler not registered to observer",
             )
-
-
-class TestSQLiteEventHandler(TestCase):
-
-    filt = dict(includes=["*.in"], excludes=["*exclude*"])
-
-    def setUp(self):
-        self.db = adbapi.ConnectionPool(
-            "sqlite3",
-            ":memory:",
-            check_same_thread=False
-        )
-
-        self.stateman = SQLiteStateManager(self.db)
-        self.handler = watchdog.EventHandler(self.stateman, self.filt)
-
-    def tearDown(self):
-        self.db.close()
-
-    def test_service_start_stop_logic(self):
-        """test if an open/close cycle works"""
