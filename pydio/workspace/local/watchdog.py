@@ -18,8 +18,8 @@ from twisted.application.service import Service, MultiService
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from pydio import IWatcher, IDiffHandler, ISelectiveEventHandler
-from pydio.workspace import IStateManager
+from . import IStateManager, IDiffHandler, IWatcher
+from pydio.workspace.local import ISelectiveEventHandler
 from pydio.util.blocking import threaded
 
 

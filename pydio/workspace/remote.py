@@ -6,7 +6,7 @@ from twisted.logger import Logger
 from twisted.internet import defer
 from twisted.application.service import Service
 
-from pydio import ISynchronizable
+from pydio.workspace import ISynchronizable
 
 @implementer(ISynchronizable)
 class PydioServer(Service):

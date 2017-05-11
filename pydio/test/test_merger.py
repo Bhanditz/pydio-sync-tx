@@ -6,7 +6,8 @@ from zope.interface.verify import DoesNotImplement
 
 from twisted.application.service import Service
 
-from pydio import merger, ISynchronizable
+from pydio import IMerger, merger
+from pydio.workspace import ISynchronizable
 
 
 @implementer(ISynchronizable)
@@ -31,7 +32,7 @@ class DummySynchronizable(Service):
 class TestIMerger(TestCase):
     def test_SQLiteMerger(self):
         self.assertTrue(
-            merger.IMerger.implementedBy(merger.SQLiteMerger),
+            IMerger.implementedBy(merger.SQLiteMerger),
             "SQLiteMerger does not implement IMerger"
         )
 

@@ -12,7 +12,8 @@ from twisted.enterprise import adbapi
 from twisted.internet.threads import deferToThread
 from twisted.application.service import MultiService
 
-from . import ISynchronizable, IMerger
+from . import IMerger
+from .workspace import ISynchronizable
 
 
 class ConcurrentMerge(RuntimeError):

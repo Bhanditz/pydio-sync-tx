@@ -1,8 +1,7 @@
 #! /usr/bin/env python
 from twisted.trial.unittest import TestCase
 
-from pydio import ISynchronizable
-from pydio.workspace import remote
+from pydio.workspace import ISynchronizable, remote
 
 
 class TestISynchronizable(TestCase):

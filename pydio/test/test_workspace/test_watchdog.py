@@ -9,8 +9,13 @@ from zope.interface.verify import DoesNotImplement
 from twisted.enterprise import adbapi
 from twisted.application.service import Service
 
-from pydio import IWatcher, IDiffHandler, ISelectiveEventHandler
-from pydio.workspace.local import watchdog
+from pydio.workspace.local import (
+    IDiffHandler,
+    ISelectiveEventHandler,
+    IWatcher,
+    watchdog,
+)
+
 from pydio.workspace.local.sqlite import SQLiteStateManager
 
 

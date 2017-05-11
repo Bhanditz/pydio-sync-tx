@@ -5,8 +5,7 @@ import os.path as osp
 from shutil import rmtree
 from tempfile import mkdtemp
 
-from pydio import ISynchronizable
-from pydio.workspace import local
+from pydio.workspace import ISynchronizable, local
 from pydio.workspace.local.sqlite import SQLiteEngine
 
 ENGINE_SQL_INIT_FILE = osp.join(

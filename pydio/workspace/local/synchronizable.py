@@ -10,8 +10,8 @@ from twisted.enterprise import adbapi
 from twisted.internet.threads import deferToThread
 from twisted.application.service import MultiService
 
-from pydio import ISynchronizable
-from pydio.workspace import IDiffEngine
+from pydio.workspace import ISynchronizable
+from pydio.workspace.local import IDiffEngine
 from .watchdog import LocalDirectoryWatcher, EventHandler
 
 
