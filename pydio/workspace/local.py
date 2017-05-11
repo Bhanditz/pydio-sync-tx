@@ -1,5 +1,6 @@
 #! /usr/env/python
 import os.path as osp
+from functools import wraps
 
 from zope.interface import implementer
 
@@ -9,8 +10,8 @@ from twisted.enterprise import adbapi
 from twisted.internet.threads import deferToThread
 from twisted.application.service import MultiService
 
-from pydio import ISynchronizable
-from .watchdog import LocalDirectoryWatcher, SQLiteEventHandler
+from pydio import ISynchronizable, IStateManager
+from .watchdog import LocalDirectoryWatcher, EventHandler
 
 
 @implementer(ISynchronizable)
@@ -31,7 +32,7 @@ class Directory(MultiService):
 
         self._diff_stream = SQLiteDiffStream(db)
 
-        handler = SQLiteEventHandler(SQLiteStateManager(db), filters)
+        handler = EventHandler(SQLiteStateManager(db), filters)
         self.addService(handler)
 
         watcher = LocalDirectoryWatcher()
@@ -77,15 +78,18 @@ class Directory(MultiService):
 def _log_state_change(verb):
     def decorator(fn):
         @wraps(fn)
-        def logger(self, verb, inode, directory):
+        def logger(self, inode, directory=False):
             itype = ("file", "directory")[directory]
             self.log.debug("{v} {0} `{1}`", itype, inode["src_path"], v=verb)
+            fn(self, inode, directory)
         return logger
     return decorator
 
 
 class SQLiteDiffStream:
-    self._db = db
+
+    def __init__(self, db):
+        self._db = db
 
     def next(self):
         raise NotImplementedError("I shall return a tuple of diffs")

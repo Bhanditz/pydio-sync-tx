@@ -6,9 +6,12 @@ from twisted.trial.unittest import TestCase
 from zope.interface import implementer
 from zope.interface.verify import DoesNotImplement
 
+from twisted.enterprise import adbapi
 from twisted.application.service import Service
 
-from pydio import watchdog, IWatcher, IDiffHandler, ISelectiveEventHandler
+from pydio import IWatcher, IDiffHandler, ISelectiveEventHandler
+from pydio.workspace import watchdog
+from pydio.workspace.local import SQLiteStateManager
 
 
 @implementer(IDiffHandler)
@@ -43,16 +46,16 @@ class TestIWatcher(TestCase):
 class TestIDiffHandler(TestCase):
     def test_SQLiteEventHandler(self):
         self.assertTrue(
-            IDiffHandler.implementedBy(watchdog.SQLiteEventHandler),
-            "SQLiteEventHandler does not implement IDiffHandler",
+            IDiffHandler.implementedBy(watchdog.EventHandler),
+            "EventHandler does not implement IDiffHandler",
         )
 
 
 class TestISelectiveEventHandler(TestCase):
     def test_SQLiteEventHandler(self):
         self.assertTrue(
-            ISelectiveEventHandler.implementedBy(watchdog.SQLiteEventHandler),
-            "SQLiteEventHandler does not implement ISelectiveEventHandler",
+            ISelectiveEventHandler.implementedBy(watchdog.EventHandler),
+            "EventHandler does not implement ISelectiveEventHandler",
         )
 
 
@@ -86,12 +89,6 @@ class TestLocalDirectoryWatcher(TestCase):
 
             self.assertIn(
                 self.handler,
-                self.watcher.services,
-                "handler not registered to services",
-            )
-
-            self.assertIn(
-                self.handler,
                 reduce(lambda s0, s1: s0.union(s1),
                        self.watcher._handlers.values()),
                 "handler not registered to observer",
@@ -103,11 +100,17 @@ class TestSQLiteEventHandler(TestCase):
     filt = dict(includes=["*.in"], excludes=["*exclude*"])
 
     def setUp(self):
-        self.handler = watchdog.SQLiteEventHandler(":memory:", self.filt)
-        self.handler.open()
+        self.db = adbapi.ConnectionPool(
+            "sqlite3",
+            ":memory:",
+            check_same_thread=False
+        )
+
+        self.stateman = SQLiteStateManager(self.db)
+        self.handler = watchdog.EventHandler(self.stateman, self.filt)
 
     def tearDown(self):
-        self.handler.close()
+        self.db.close()
 
     def test_service_start_stop_logic(self):
         """test if an open/close cycle works"""

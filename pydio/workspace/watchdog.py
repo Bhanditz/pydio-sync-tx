@@ -18,7 +18,7 @@ from twisted.application.service import Service, MultiService
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from pydio import IWatcher, IDiffHandler, ISelectiveEventHandler
+from pydio import IWatcher, IDiffHandler, ISelectiveEventHandler, IStateManager
 from pydio.util.blocking import threaded
 
 
@@ -61,7 +61,7 @@ class LocalDirectoryWatcher(Service, Observer):
 
 
 @implementer(IDiffHandler, ISelectiveEventHandler)
-class SQLiteEventHandler(Service, FileSystemEventHandler):
+class EventHandler(Service, FileSystemEventHandler):
 
     log = Logger()
 
