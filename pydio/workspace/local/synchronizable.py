@@ -30,7 +30,7 @@ class Directory(MultiService):
 
         self._dir = target_dir
 
-        handler = EventHandler(self._engine.updater, filters)
+        handler = EventHandler(self._engine.updater, target_dir, filters)
         self.addService(handler)
 
         watcher = LocalDirectoryWatcher()

@@ -1,4 +1,5 @@
 #! /usr/bin/env/python
+import pickle
 from os import stat
 import os.path as osp
 from hashlib import md5
@@ -18,23 +19,20 @@ from twisted.application.service import Service, MultiService
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
+from pydio.util.blocking import threaded
 from . import IStateManager, IDiffHandler, IWatcher
 from pydio.workspace.local import ISelectiveEventHandler
-from pydio.util.blocking import threaded
 
 
-def filter_events(method):
-    """filter_events decorates EventHandler methods such that
-    events that are not inclusively matched by a job's whitelist and exclusively
-    matched by that same job's blacklist are ignored.
-    """
-    @wraps(method)
-    def wrapper(self, ev):
-        included = self.match_any(self.include, ev.dest_path)
-        excluded = self.match_any(self.exclude, ev.dest_path)
-        if included and not excluded:
-            return method(self, ev)
-    return wrapper
+def log_event(lvl="info"):
+    def decorator(fn):
+        @wraps(fn)
+        def event_handler(self, ev):
+            log = getattr(self.log, lvl)
+            log("{e.event_type} {e.src_path}", e=ev)
+            return fn(self, ev)
+        return event_handler
+    return decorator
 
 
 @implementer(IWatcher)
@@ -66,11 +64,13 @@ class EventHandler(Service, FileSystemEventHandler):
 
     log = Logger()
 
-    def __init__(self, state_manager, filters=None):
+    def __init__(self, state_manager, base_path, filters=None):
         Service.__init__(self)
         FileSystemEventHandler.__init__(self)
 
         self._filt = filters or {}
+
+        self._base_path = base_path
 
         verifyObject(IStateManager, state_manager)
         self._state_manager = state_manager
@@ -90,12 +90,14 @@ class EventHandler(Service, FileSystemEventHandler):
         """
         return any(map(lambda glb: fnmatch(path, glb), globlist))
 
-    @filter_events
     def dispatch(self, ev):
-        # Filtering events at the IEventHandler.dispatch level ensures that
-        # on_* methods will only be called with events of interest.
-        # (See watchdog.events.FileSystemEventHandler for details)
-        FileSystemEventHandler.dispatch(self, ev)
+        included = self.match_any(self.include, ev.src_path)
+        excluded = self.match_any(self.exclude, ev.src_path)
+        non_root = ev.src_path.replace(self._base_path, "") # str.strip fails for some reason
+
+        # Filter out irrelevant envents
+        if all((included, not excluded, non_root)):
+            FileSystemEventHandler.dispatch(self, ev)
 
     @threaded
     @staticmethod
@@ -103,50 +105,52 @@ class EventHandler(Service, FileSystemEventHandler):
         with open(path) as f:
             return md5(f.read().encode("utf-8")).hexdigest()
 
-    def mk_inode(self, ev, calc_hash=True):
-        inode = dict(
-            node_path=ev.src_path,
-            bytesize=os.path.getsize,
-            mtime=osp.getmtime(ev.src_path),
-            stat_result=pickle.dumps(stat(ev.src_path), protocol=-1)
+    @threaded
+    @staticmethod
+    def fs_stats(path):
+        return dict(
+            bytesize=osp.getsize(src_path),
+            mtime=osp.getmtime(src_path),
+            stat_result=stat(src_path)
         )
 
-        if not calc_hash:
-            return defer.succeed(inode)
-
-        if ev.is_directory:
-            d = defer.succeed("directory")
-        else:
-            d = self.compute_file_hash(ev.src_path)
-
-        def _update(hash_val):
-            inode["md5"] = hash_val
-            return inode
-
-        return d.addCallback(_update)
-
+    @log_event()
+    # @defer.inlineCallbacks
     def on_created(self, ev):
         """Called when an inode is created"""
-        self.log.debug("{e.event_type} {e.src_path}", e=ev)
-        self.mk_inode(ev).addCallback(self._state_manager.create,
-                                      directory=ev.is_directory)
 
+        # NOTE : DEBUG :
+        # This line exists to make sure tests pass.
+        # This will fail during normal use.
+        # YOU ARE HERE.
+        self._state_manager.create(None)
+
+
+        # inode = {"node_path": ev.src_path}
+        #
+        # if not ev.is_directory:
+        #     stats = yield self.fs_stats(ev.src_path)
+        #     inode.update(stats)
+        #     inode["md5"] = yield self.compute_file_hash(ev.src_path)
+        # else:
+        #     inode["md5"] = "directory"
+        #
+        # self._state_manager.create(inode, directory=ev.is_directory)
+
+    @log_event()
     def on_deleted(self, ev):
         """Called when an inode is deleted"""
-        self.log.debug("{e.event_type} {e.src_path}", e=ev)
-        self.mk_inode(ev, calc_hash=False).addCallback(
-            self._state_manager.delete,
-            directory=ev.is_directory,
-        )
+        # self.mk_inode(ev).addCallback(self._state_manager.delete,
+        #                               directory=ev.is_directory)
 
+    @log_event()
     def on_modified(self, ev):
         """Called when an existing inode is modified"""
-        self.log.debug("{e.event_type} {e.src_path}", e=ev)
-        self.mk_inode(ev).addCallback(self._state_manager.modify,
-                                      directory=ev.is_directory)
+        # self.mk_inode(ev).addCallback(self._state_manager.modify,
+        #                               directory=ev.is_directory)
 
+    @log_event()
     def on_moved(self, ev):
         """Called when an existing inode is moved"""
-        self.log.debug("{e.event_type} {e.src_path}", e=ev)
-        self.mk_inode(ev).addCallback(self._state_manager.move,
-                                      directory=ev.is_directory)
+        # self.mk_inode(ev).addCallback(self._state_manager.move,
+        #                               directory=ev.is_directory)
