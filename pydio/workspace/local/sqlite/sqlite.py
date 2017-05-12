@@ -5,8 +5,8 @@ from functools import wraps
 from zope.interface import implementer
 
 from twisted.logger import Logger
+from twisted.internet import defer
 from twisted.application.service import Service
-from twisted.internet.defer import inlineCallbacks
 from twisted.internet.threads import deferToThread
 from twisted.enterprise.adbapi import ConnectionPool
 
@@ -20,18 +20,18 @@ class Engine(Service):
 
     log = Logger()
 
-    def __init__(self, path=":memory:"):
+    def __init__(self, db_file=":memory:"):
         super().__init__()
 
-        self.log.debug("opening database in {path}", path=path.strip(":"))
-        self._db = ConnectionPool("sqlite3", path, check_same_thread=False)
+        self.log.debug("opening database in {path}", path=db_file.strip(":"))
+        self._db = ConnectionPool("sqlite3", db_file, check_same_thread=False)
 
-    @inlineCallbacks
+    @defer.inlineCallbacks
     def _start(self):
         f = yield deferToThread(open, SQL_INIT_FILE)
         try:
-            for line in f.readlines():
-                yield self._db.runOperation(line.strip())
+            run_script = lambda c, s: c.executescript(s)
+            yield self._db.runInteraction(run_script, f.read())
         finally:
             f.close()
 
@@ -94,31 +94,33 @@ class StateManager:
     @_log_state_change("create")
     def create(self, inode, directory=False):
         params = ("node_path", "bytesize", "md5", "mtime", "stat_result")
-        directive = ("INSERT INTO ajxp_index "
-                     "(node_path,bytesize,md5,mtime,stat_result) VALUES "
-                     "(?,?,?,?,?)")
-        self._db.runQuery(directive, map(inode.get, parms))
+        # directive = ("INSERT INTO ajxp_index "
+        #              "(node_path,bytesize,md5,mtime,stat_result) VALUES "
+        #              "(?,?,?,?,?)")
+        # self._db.runQuery(directive, map(inode.get, parms))
 
     @_log_state_change("delete")
     def delete(self, inode, directory=False):
-        self._db.runQuery(
-            "DELETE FROM ajxp_index WHERE node_path LIKE ?%",
-            inode["src_path"],
-        )
+        pass  # DEBUG
+        # self._db.runQuery(
+        #     "DELETE FROM ajxp_index WHERE node_path LIKE ?%",
+        #     inode["src_path"],
+        # )
 
     @_log_state_change("modify")
     def modify(self, inode, directory=False):
         if directory:
             return  # we'll update the files individually, as we're notified
 
-        params = ("bytesize", "md5", "mtime", "stat_result", "node_path")
-        directive = ("UPDATE ajxp_index "
-                     "SET bytesize=?, md5=?, mtime=?, stat_result=? "
-                     "WHERE node_path=?")
-        self._db.runQuery(directive, map(inode.get, params))
+        # params = ("bytesize", "md5", "mtime", "stat_result", "node_path")
+        # directive = ("UPDATE ajxp_index "
+        #              "SET bytesize=?, md5=?, mtime=?, stat_result=? "
+        #              "WHERE node_path=?")
+        # self._db.runQuery(directive, map(inode.get, params))
 
     @_log_state_change("move")
     def move(self, inode, directory=False):
-        raise NotImplementedError("I shall move an inode in ajxp_index")
+        pass  # DEBUG
+        # raise NotImplementedError("I shall move an inode in ajxp_index")
 
 __all__ = ["Engine", "DiffStream", "StateManager"]
