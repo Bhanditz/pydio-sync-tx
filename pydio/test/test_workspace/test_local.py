@@ -5,8 +5,18 @@ import os.path as osp
 from shutil import rmtree
 from tempfile import mkdtemp
 
+from zope.interface import implementer
+from zope.interface.verify import DoesNotImplement
+
+from twisted.application.service import Service
+
 from pydio.workspace import ISynchronizable, local
 from pydio.workspace.local.sqlite import Engine
+
+
+class DummyEngine(Service):
+    updater = None
+    stream = None
 
 
 class TestISynchronizable(TestCase):
@@ -14,6 +24,17 @@ class TestISynchronizable(TestCase):
         self.assertTrue(
             ISynchronizable.implementedBy(local.Directory),
             "Directory does not implement ISynchronizable",
+        )
+
+class TestDirectoryEnforceInterfaces(TestCase):
+
+    engine = DummyEngine()
+
+    def test_enforce_local(self):
+        self.assertRaises(
+            DoesNotImplement,
+            local.Directory,
+            self.engine, "", {},
         )
 
 

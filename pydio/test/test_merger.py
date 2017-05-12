@@ -37,7 +37,7 @@ class TestIMerger(TestCase):
         )
 
 
-class TestSQLiteMergerIfaceEnforcement(TestCase):
+class TestEnforceISynchronizable(TestCase):
 
     synchronizable = DummySynchronizable()
 
