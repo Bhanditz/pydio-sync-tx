@@ -1,16 +1,11 @@
 #! /usr/bin/env python
-from zope.interface import implementer
-
 from twisted.logger import Logger
 from twisted.application.service import MultiService
 from twisted.application.internet import TimerService
-from twisted.internet.task import LoopingCall
 
 from .workspace import local, remote
 from .workspace.local import sqlite
 from .merger import SQLiteMerger
-
-from pydio import IMerger
 
 
 class Job(MultiService):
