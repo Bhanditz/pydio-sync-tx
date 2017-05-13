@@ -6,7 +6,6 @@ from zope.interface.verify import verifyObject
 
 from twisted.logger import Logger
 from twisted.internet import defer
-from twisted.enterprise import adbapi
 from twisted.internet.threads import deferToThread
 from twisted.application.service import MultiService
 
