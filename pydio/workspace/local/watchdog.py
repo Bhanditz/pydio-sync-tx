@@ -1,9 +1,7 @@
 #! /usr/bin/env/python
-import pickle
 from os import stat
 import os.path as osp
 from hashlib import md5
-from pickle import dumps
 from fnmatch import fnmatch
 from functools import wraps
 
@@ -12,7 +10,6 @@ from zope.interface.verify import verifyObject
 
 from twisted.logger import Logger
 from twisted.internet import defer
-from twisted.enterprise import adbapi
 from twisted.internet.threads import deferToThread
 from twisted.application.service import Service, MultiService
 
@@ -109,9 +106,9 @@ class EventHandler(Service, FileSystemEventHandler):
     @staticmethod
     def fs_stats(path):
         return dict(
-            bytesize=osp.getsize(src_path),
-            mtime=osp.getmtime(src_path),
-            stat_result=stat(src_path)
+            bytesize=osp.getsize(path),
+            mtime=osp.getmtime(path),
+            stat_result=stat(path)
         )
 
     @log_event()
