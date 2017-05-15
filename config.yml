@@ -1,16 +1,19 @@
 sandbox.pydio.com-my-files:
+  __type__: JobConfig
   active: true
-  direction: null # => "bi"
+  direction: bi
   directory: /Users/lthibault/Pydio/My Files
   filters:
-    excludes: [.*, '*/.*', /recycle_bin*, '*.pydio_dl', '*.DS_Store', .~lock.*, ~*,
+    exclude: [.*, '*/.*', /recycle_bin*, '*.pydio_dl', '*.DS_Store', .~lock.*, ~*,
       '*.xlk', '*.tmp']
-    includes: ['*']
+    include: ['*']
   frequency: 10
-  hide_bi_dir: false
-  hide_down_dir: false
-  hide_up_dir: false
+  hide_bi_dir: 'false'
+  hide_down_dir: 'false'
+  hide_up_dir: 'false'
+  id: sandbox.pydio.com-my-files
   label: Pydio Enterprise - My Files
+  poolsize: 4
   remote_folder: ''
   server: http://sandbox.pydio.com/enterprise
   solve: both
