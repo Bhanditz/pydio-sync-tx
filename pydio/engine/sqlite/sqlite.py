@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-import sqlite3
 import os.path as osp
 from functools import wraps
 
@@ -8,64 +7,13 @@ from zope.interface import implementer
 from twisted.logger import Logger
 from twisted.internet import defer
 from twisted.application.service import Service
-from twisted.internet.threads import deferToThread
 
-from pydio.util.blocking import threaded
+from pydio.util.sqlite import SQLiteService
 from pydio.engine import IDiffEngine, IStateManager, IDiffStream
 
-SQL_INIT_FILE = osp.join(osp.dirname(__file__), "pydio.sql")
 
-
-class SQLite(Service):
-
-    log = Logger()
-
-    def __init__(self, db_file=":memory:", init_script=None):
-        self._db_file = db_file
-        self._running = False
-        self._exec_done = None  # Deferred set by startService
-
-        self._sql_q = defer.DeferredQueue()
-        self._conn = sqlite3.connect(db_file)
-        if init_script is not None:
-            self.log.info("Running `{script}`", script=init_script)
-            self._init(init_script)
-
-    @defer.inlineCallbacks
-    def _init(self, path):
-        def _start(self):
-            f = yield deferToThread(open, SQL_INIT_FILE)
-            try:
-                yield deferToThread(self._conn.executescript, f.read())
-            finally:
-                f.close()
-
-    def execute(self, statement, *param):
-        d = defer.Deferred()
-        self._sql_q.put((d, statement, param))
-        return d
-
-    @defer.inlineCallbacks
-    def _exec(self):
-        while (self._running or len(self._sql_q)):
-            d, statement, param = yield self._sql_q.get()
-            c = self._conn.cursor()
-            yield deferToThread(c.execute, statement, *param)
-            d.callback(c)
-            c.close()
-
-    def startService(self):
-        self.log.info("starting sqlite service")
-        super().startService()
-        self._running = True
-        self._exec_done = self._exec()
-
-    def stopService(self):
-        self.log.warn("stopping sqlite service")
-        super().stopService()
-        self._running = False
-        self._conn.close()
-        return self._exec_done
+class SQLite(SQLiteService):
+    init_script = osp.join(osp.dirname(__file__), "pydio.sql")
 
 
 @implementer(IDiffEngine)
