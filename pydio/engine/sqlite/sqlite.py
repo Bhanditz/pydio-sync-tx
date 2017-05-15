@@ -12,7 +12,7 @@ from pydio.util.sqlite import SQLiteService
 from pydio.engine import IDiffEngine, IStateManager, IDiffStream
 
 
-class SQLite(SQLiteService):
+class Database(SQLiteService):
     init_script = osp.join(osp.dirname(__file__), "pydio.sql")
 
 
@@ -25,7 +25,7 @@ class Engine(Service):
         super().__init__()
 
         self.log.debug("opening database in {path}", path=db_file.strip(":"))
-        self._db = SQLite(db_file)
+        self._db = Database(db_file)
 
     def startService(self):
         self.log.info("initializing database from {path}", path=SQL_INIT_FILE)
