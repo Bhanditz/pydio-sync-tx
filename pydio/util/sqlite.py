@@ -51,8 +51,6 @@ class SQLiteService(Service):
         self._exec_done = self._exec()
         return self._init()
 
-
-
     def stopService(self):
         self.log.warn("stopping sqlite service")
         super().stopService()
