@@ -19,14 +19,11 @@ class SQLiteService(Service):
 
         self._sql_q = defer.DeferredQueue()
         self._conn = sqlite3.connect(db_file)
-        if self.init_script is not None:
-            self.log.info("Running `{script}`", script=init_script)
-            self._init(init_script)
 
     @defer.inlineCallbacks
-    def _init(self, path):
-        def _start(self):
-            f = yield deferToThread(open, SQL_INIT_FILE)
+    def _init(self):
+        if self.init_script is not None:
+            f = yield deferToThread(open, self.init_script)
             try:
                 yield deferToThread(self._conn.executescript, f.read())
             finally:
@@ -49,8 +46,12 @@ class SQLiteService(Service):
     def startService(self):
         self.log.info("starting sqlite service")
         super().startService()
+
         self._running = True
         self._exec_done = self._exec()
+        return self._init()
+
+
 
     def stopService(self):
         self.log.warn("stopping sqlite service")
