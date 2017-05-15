@@ -139,8 +139,7 @@ class StateManager:
         directive = ("INSERT INTO ajxp_index "
                      "(node_path,bytesize,md5,mtime,stat_result) VALUES "
                      "(?,?,?,?,?);")
-
-        self._db.execute(directive, *map(inode.get, params))
+        return self._db.execute(directive, *map(inode.get, params))
 
     @_log_state_change("delete")
     def delete(self, inode, directory=False):
