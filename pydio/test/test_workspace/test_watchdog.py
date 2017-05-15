@@ -137,7 +137,7 @@ class TestLocalDirectoryWatcher(TestCase):
 
 class TestEventHandler(TestCase):
 
-    filters = dict(includes=["*"], excludes=["*.exclude"])
+    filters = dict(include=["*"], exclude=["*.exclude"])
 
     def setUp(self):
         self.dir = mkdtemp()
@@ -150,17 +150,23 @@ class TestEventHandler(TestCase):
     def tearDown(self):
         rmtree(self.dir)
 
-    def test_dispatch_include(self):
-        self.assertRaises(
-            DummyStateManager.OnCreate,
-            self.handler.dispatch,
-            events.FileCreatedEvent(osp.join(self.dir, "test.include"))
+    def test_event_filter_include(self):
+        ev = events.FileCreatedEvent(osp.join(self.dir, "test"))
+        self.assertTrue(
+            self.handler._filter_event(ev),
+            "relevant event {0} was ignored".format(ev),
         )
 
-    def test_dispatch_exclude(self):
-        self.handler.dispatch(events.FileCreatedEvent(
-            osp.join(self.dir, "test.exclude")
-        ))
+    def test_event_filter_exclude(self):
+        ev = events.FileCreatedEvent(osp.join(self.dir, "test.exclude"))
+        self.assertFalse(
+            self.handler._filter_event(ev),
+            "irrelevant event {0} was processed".format(ev),
+        )
 
-    def test_dispatch_filter_root(self):
-        self.handler.dispatch(events.DirModifiedEvent(self.dir))
+    def test_event_filter_root(self):
+        ev = events.DirModifiedEvent(self.dir)
+        self.assertFalse(
+            self.handler._filter_event(ev),
+            "root directory {0} was processed".format(ev.src_path),
+        )

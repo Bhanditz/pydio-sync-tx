@@ -60,9 +60,9 @@ class Scheduler(MultiService):
         return "<Scheduler with {0} jobs>".format(len(self.services))
 
     def startService(self):
-        self.log.info("Starting scheduler")
+        self.log.info("starting scheduler service")
         super().startService()
 
     def stopService(self):
-        self.log.warn("Stopping scheduler")
+        self.log.warn("stopping scheduler service")
         super().stopService()

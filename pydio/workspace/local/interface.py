@@ -21,19 +21,6 @@ class IDiffEngine(IService):
     updater = Attribute("IStateManager")
     stream = Attribute("IDiffStream")
 
-    def _start():
-        """Start the engine.  May return a deferred
-        Intended to facilitate testing.
-        """
-
-    def _stop():
-        """Stop tracking state and producing diffs.
-        Note that it is acceptable for an implementation to store diffs in a
-        buffer, so there may be changes to process after calling `shutdown`.
-
-        Intended to facilitate testing.
-        """
-
 
 class IStateManager(Interface):
     """IStateManager receives changes to inodes and updates the state of an

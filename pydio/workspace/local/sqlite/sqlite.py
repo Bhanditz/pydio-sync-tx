@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+import sqlite3
 import os.path as osp
 from functools import wraps
 
@@ -8,11 +9,63 @@ from twisted.logger import Logger
 from twisted.internet import defer
 from twisted.application.service import Service
 from twisted.internet.threads import deferToThread
-from twisted.enterprise.adbapi import ConnectionPool
 
+from pydio.util.blocking import threaded
 from pydio.workspace.local import IDiffEngine, IStateManager, IDiffStream
 
 SQL_INIT_FILE = osp.join(osp.dirname(__file__), "pydio.sql")
+
+
+class SQLite(Service):
+
+    log = Logger()
+
+    def __init__(self, db_file=":memory:", init_script=None):
+        self._db_file = db_file
+        self._running = False
+        self._exec_done = None  # Deferred set by startService
+
+        self._sql_q = defer.DeferredQueue()
+        self._conn = sqlite3.connect(db_file)
+        if init_script is not None:
+            self.log.info("Running `{script}`", script=init_script)
+            self._init(init_script)
+
+    @defer.inlineCallbacks
+    def _init(self, path):
+        def _start(self):
+            f = yield deferToThread(open, SQL_INIT_FILE)
+            try:
+                yield deferToThread(self._conn.executescript, f.read())
+            finally:
+                f.close()
+
+    def execute(self, statement, *param):
+        d = defer.Deferred()
+        self._sql_q.put((d, statement, param))
+        return d
+
+    @defer.inlineCallbacks
+    def _exec(self):
+        while (self._running or len(self._sql_q)):
+            d, statement, param = yield self._sql_q.get()
+            c = self._conn.cursor()
+            yield deferToThread(c.execute, statement, *param)
+            d.callback(c)
+            c.close()
+
+    def startService(self):
+        self.log.info("starting sqlite service")
+        super().startService()
+        self._running = True
+        self._exec_done = self._exec()
+
+    def stopService(self):
+        self.log.warn("stopping sqlite service")
+        super().stopService()
+        self._running = False
+        self._conn.close()
+        return self._exec_done
 
 
 @implementer(IDiffEngine)
@@ -24,29 +77,17 @@ class Engine(Service):
         super().__init__()
 
         self.log.debug("opening database in {path}", path=db_file.strip(":"))
-        self._db = ConnectionPool("sqlite3", db_file, check_same_thread=False)
-
-    @defer.inlineCallbacks
-    def _start(self):
-        f = yield deferToThread(open, SQL_INIT_FILE)
-        try:
-            run_script = lambda c, s: c.executescript(s)
-            yield self._db.runInteraction(run_script, f.read())
-        finally:
-            f.close()
-
-    def _stop(self):
-        self._db.close()
+        self._db = SQLite(db_file)
 
     def startService(self):
-        self.log.debug("initializing database from {path}", path=SQL_INIT_FILE)
+        self.log.info("initializing database from {path}", path=SQL_INIT_FILE)
         super().startService()
-        return self._start()
+        return self._db.startService()
 
     def stopService(self):
-        self.log.debug("halting")
+        self.log.warn("halting")
         super().stopService()
-        return self._stop()
+        return self._db.stopService()
 
     @property
     def updater(self):
@@ -74,7 +115,8 @@ def _log_state_change(verb):
         @wraps(fn)
         def logger(self, inode, directory=False):
             itype = ("file", "directory")[directory]
-            self.log.debug("{v} {0} `{1}`", itype, inode["src_path"], v=verb)
+            self.log.debug("{verb} {itype} `{ipath}`",
+                           verb=verb, itype=itype, ipath=inode["node_path"])
             fn(self, inode, directory)
         return logger
     return decorator
@@ -94,10 +136,11 @@ class StateManager:
     @_log_state_change("create")
     def create(self, inode, directory=False):
         params = ("node_path", "bytesize", "md5", "mtime", "stat_result")
-        # directive = ("INSERT INTO ajxp_index "
-        #              "(node_path,bytesize,md5,mtime,stat_result) VALUES "
-        #              "(?,?,?,?,?)")
-        # self._db.runQuery(directive, map(inode.get, parms))
+        directive = ("INSERT INTO ajxp_index "
+                     "(node_path,bytesize,md5,mtime,stat_result) VALUES "
+                     "(?,?,?,?,?);")
+
+        self._db.execute(directive, *map(inode.get, params))
 
     @_log_state_change("delete")
     def delete(self, inode, directory=False):

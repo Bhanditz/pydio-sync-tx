@@ -74,11 +74,11 @@ class EventHandler(Service, FileSystemEventHandler):
 
     @property
     def include(self):
-        return tuple(self._filt.get("includes", []))
+        return tuple(self._filt.get("include", []))
 
     @property
     def exclude(self):
-        return tuple(self._filt.get("excludes", []))
+        return tuple(self._filt.get("exclude", []))
 
     @staticmethod
     def match_any(globlist, path):
@@ -87,24 +87,28 @@ class EventHandler(Service, FileSystemEventHandler):
         """
         return any(map(lambda glb: fnmatch(path, glb), globlist))
 
-    def dispatch(self, ev):
+    def base_path(self, path):
+        return path.replace(self._base_path, "")
+
+    def _filter_event(self, ev):
         included = self.match_any(self.include, ev.src_path)
         excluded = self.match_any(self.exclude, ev.src_path)
-        non_root = ev.src_path.replace(self._base_path, "") # str.strip fails for some reason
+        non_root = bool(self.base_path(ev.src_path))
+        return all((included, not excluded, non_root))
 
+    def dispatch(self, ev):
         # Filter out irrelevant envents
-        if all((included, not excluded, non_root)):
+        # No need to test this function.  It's covered by watchdog's unit tests.
+        if self._filter_event(ev):
             FileSystemEventHandler.dispatch(self, ev)
 
     @threaded
-    @staticmethod
-    def compute_file_hash(path):
+    def compute_file_hash(self, path):
         with open(path) as f:
             return md5(f.read().encode("utf-8")).hexdigest()
 
     @threaded
-    @staticmethod
-    def fs_stats(path):
+    def fs_stats(self, path):
         return dict(
             bytesize=osp.getsize(path),
             mtime=osp.getmtime(path),
@@ -112,27 +116,19 @@ class EventHandler(Service, FileSystemEventHandler):
         )
 
     @log_event()
-    # @defer.inlineCallbacks
+    @defer.inlineCallbacks
     def on_created(self, ev):
         """Called when an inode is created"""
 
-        # NOTE : DEBUG :
-        # This line exists to make sure tests pass.
-        # This will fail during normal use.
-        # YOU ARE HERE.
-        self._state_manager.create(None)
+        inode = {"node_path": ev.src_path}
+        if not ev.is_directory:
+            stats = yield self.fs_stats(ev.src_path)
+            inode.update(stats)
+            inode["md5"] = yield self.compute_file_hash(ev.src_path)
+        else:
+            inode["md5"] = "directory"
 
-
-        # inode = {"node_path": ev.src_path}
-        #
-        # if not ev.is_directory:
-        #     stats = yield self.fs_stats(ev.src_path)
-        #     inode.update(stats)
-        #     inode["md5"] = yield self.compute_file_hash(ev.src_path)
-        # else:
-        #     inode["md5"] = "directory"
-        #
-        # self._state_manager.create(inode, directory=ev.is_directory)
+        self._state_manager.create(inode, directory=ev.is_directory)
 
     @log_event()
     def on_deleted(self, ev):
