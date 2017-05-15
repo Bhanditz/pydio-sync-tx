@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 import sqlite3
+from collections import namedtuple
 
 from twisted.logger import Logger
 from twisted.internet import defer
@@ -11,6 +12,7 @@ class SQLiteService(Service):
 
     log = Logger()
     init_script = None  # path to .sql script
+    db_op = namedtuple("SQLiteOperation", ("d", "statement", "params"))
 
     def __init__(self, db_file=":memory:"):
         self._db_file = db_file
@@ -31,16 +33,16 @@ class SQLiteService(Service):
 
     def execute(self, statement, *param):
         d = defer.Deferred()
-        self._sql_q.put((d, statement, param))
+        self._sql_q.put(self.db_op(d, statement, param))
         return d
 
     @defer.inlineCallbacks
     def _exec(self):
         while (self._running or len(self._sql_q)):
-            d, statement, param = yield self._sql_q.get()
+            op = yield self._sql_q.get()
             c = self._conn.cursor()
-            yield deferToThread(c.execute, statement, *param)
-            d.callback(c)
+            yield deferToThread(c.execute, op.statement, *op.params)
+            op.d.callback(c)
             c.close()
 
     def startService(self):
