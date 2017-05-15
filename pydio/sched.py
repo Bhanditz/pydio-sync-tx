@@ -6,7 +6,7 @@ from twisted.application.internet import TimerService
 from .engine import sqlite
 from .merger import SQLiteMerger
 from .synchronizable import Workspace
-from .storage.fs import LocalDirectory
+from .storage import fs, ram
 
 
 class Job(MultiService):
@@ -48,8 +48,10 @@ class Scheduler(MultiService):
 
             lw = Workspace(
                 sqlite.Engine(),
-                LocalDirectory(path=cfg["directory"], filters=cfg["filters"]),
+                fs.LocalDirectory(cfg["directory"], filters=cfg["filters"]),
             )
+
+            rw = Workspace(sqlite.Engine(), ram.Volatile())
 
             merger = SQLiteMerger(lw, rw)
             trigger = TimerService(cfg.pop("frequency", .025), merger.sync)
