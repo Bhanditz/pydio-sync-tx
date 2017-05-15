@@ -13,7 +13,7 @@ from twisted.internet.threads import deferToThread
 from twisted.application.service import MultiService
 
 from . import IMerger
-from .workspace import ISynchronizable
+from .synchronizable import ISynchronizable
 
 
 class ConcurrentMerge(RuntimeError):

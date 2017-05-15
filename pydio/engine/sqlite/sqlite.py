@@ -11,7 +11,7 @@ from twisted.application.service import Service
 from twisted.internet.threads import deferToThread
 
 from pydio.util.blocking import threaded
-from pydio.workspace.local import IDiffEngine, IStateManager, IDiffStream
+from pydio.engine import IDiffEngine, IStateManager, IDiffStream
 
 SQL_INIT_FILE = osp.join(osp.dirname(__file__), "pydio.sql")
 

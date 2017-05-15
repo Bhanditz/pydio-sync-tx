@@ -6,8 +6,7 @@ from zope.interface.verify import DoesNotImplement
 
 from twisted.application.service import Service
 
-from pydio import IMerger, merger
-from pydio.workspace import ISynchronizable
+from pydio import IMerger, ISynchronizable, merger
 
 
 @implementer(ISynchronizable)

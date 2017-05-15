@@ -1,4 +1,4 @@
-#! /usr/bin/env/python
+#! /usr/bin/env python
 from os import stat
 import os.path as osp
 from hashlib import md5
@@ -17,8 +17,9 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 from pydio.util.blocking import threaded
-from . import IStateManager, IDiffHandler, IWatcher
-from pydio.workspace.local import ISelectiveEventHandler
+from . import IDiffHandler, ISelectiveEventHandler
+from pydio.storage import IStorage
+from pydio.engine import IStateManager
 
 
 def log_event(lvl="info"):
@@ -32,28 +33,28 @@ def log_event(lvl="info"):
     return decorator
 
 
-@implementer(IWatcher)
-class LocalDirectoryWatcher(Service, Observer):
+@implementer(IStorage)
+class LocalDirectory(MultiService):
+    def __init__(self, path, recursive=True, filters=None):
+        super().__init__()
 
-    log = Logger()
+        self._path = path
+        self._recursive = recursive
+        self._filt = None or {}
+        self._obs = Observer()
 
-    def __init__(self):
-        MultiService.__init__(self)
-        Observer.__init__(self)
-
-    def register_handler(self, path, handler, recursive=True):
-        """Register an IEventHandler to the directory observer, and register the
-        former as a service to IWatcher.
-        """
-        verifyObject(IDiffHandler, handler)
-        self.schedule(handler, path, recursive=recursive)
+    def connect(self, istateman):
+        verifyObject(IStateManager, istateman)
+        h = EventHandler(istateman, self._path, self._filt)
+        self.addService(h)
+        self._obs.schedule(h, self._path, recursive=self._recursive)
 
     def startService(self):
-        self.start()
+        self._obs.start()
 
     def stopService(self):
-        self.stop()
-        return deferToThread(self.join)
+        self._obs.stop()
+        return deferToThread(self._obs.join)
 
 
 @implementer(IDiffHandler, ISelectiveEventHandler)

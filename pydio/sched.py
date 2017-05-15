@@ -3,9 +3,10 @@ from twisted.logger import Logger
 from twisted.application.service import MultiService
 from twisted.application.internet import TimerService
 
-from .workspace import local, remote
-from .workspace.local import sqlite
+from .engine import sqlite
 from .merger import SQLiteMerger
+from .synchronizable import Workspace
+from .storage.fs import LocalDirectory
 
 
 class Job(MultiService):
@@ -45,12 +46,11 @@ class Scheduler(MultiService):
         for name, cfg in jobs.items():
             self.log.info("Configuring {name}", name=name)
 
-            lw = local.Directory(
+            lw = Workspace(
                 sqlite.Engine(),
-                cfg["directory"],
-                filters=cfg["filters"]
+                LocalDirectory(path=cfg["directory"], filters=cfg["filters"]),
             )
-            rw = remote.PydioServer()
+
             merger = SQLiteMerger(lw, rw)
             trigger = TimerService(cfg.pop("frequency", .025), merger.sync)
 
