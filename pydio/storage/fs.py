@@ -142,7 +142,7 @@ class EventHandler(Service, FileSystemEventHandler):
     @log_event()
     def on_deleted(self, ev):
         """Called when an inode is deleted"""
-        self._state_manager.delege({"node_path": ev.src_path},
+        self._state_manager.delete({"node_path": ev.src_path},
                                    directory=ev.is_directory)
 
     @log_event()
