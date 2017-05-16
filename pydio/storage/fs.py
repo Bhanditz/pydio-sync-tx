@@ -40,7 +40,7 @@ class LocalDirectory(MultiService):
 
         self._path = path
         self._recursive = recursive
-        self._filt = None or {}
+        self._filt = filters or {}
         self._obs = Observer()
 
     def connect_state_manager(self, istateman):
@@ -107,6 +107,8 @@ class EventHandler(Service, FileSystemEventHandler):
         # No need to test this function.  It's covered by watchdog's unit tests.
         if self._filter_event(ev):
             FileSystemEventHandler.dispatch(self, ev)
+        else:
+            self.log.debug("ignoring {ev}", ev=ev)
 
     @threaded
     def compute_file_hash(self, path):

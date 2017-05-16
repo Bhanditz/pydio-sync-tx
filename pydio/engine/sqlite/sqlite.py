@@ -125,7 +125,7 @@ class StateManager:
     @_log_state_change("modify")
     def modify(self, inode, directory=False):
         import ipdb; ipdb.set_trace()
-
+        
         # params = ("bytesize", "md5", "mtime", "stat_result", "node_path")
         # directive = ("UPDATE ajxp_index "
         #              "SET bytesize=?, md5=?, mtime=?, stat_result=? "
