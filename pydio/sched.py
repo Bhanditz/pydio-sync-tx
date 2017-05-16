@@ -22,11 +22,11 @@ class Job(MultiService):
         self.addService(trigger)
 
     def startService(self):
-        self.log.info("starting {job.name}", job=self)
+        self.log.info("starting job {job.name}", job=self)
         super().startService()
 
     def stopService(self):
-        self.log.info("stopping {job.name}", job=self)
+        self.log.info("stopping job {job.name}", job=self)
 
 
 class Scheduler(MultiService):
@@ -46,7 +46,7 @@ class Scheduler(MultiService):
         # For each job configuration, instantiate the requisite components
         # and string everything together using (multi)service(s).
         for name, cfg in jobs.items():
-            self.log.info("Configuring {name}", name=name)
+            self.log.debug("configuring job {name}", name=name)
 
             lw = Workspace(
                 sqlite.Engine(osp.join(data_dir, name, "pydio.sqlite")),

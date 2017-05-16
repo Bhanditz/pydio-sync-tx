@@ -50,9 +50,11 @@ class LocalDirectory(MultiService):
         self._obs.schedule(h, self._path, recursive=self._recursive)
 
     def startService(self):
+        super().startService()
         self._obs.start()
 
     def stopService(self):
+        super().stopService()
         self._obs.stop()
         return deferToThread(self._obs.join)
 
@@ -123,6 +125,7 @@ class EventHandler(Service, FileSystemEventHandler):
     @defer.inlineCallbacks
     def on_created(self, ev):
         """Called when an inode is created"""
+        import ipdb; ipdb.set_trace()
 
         inode = {"node_path": ev.src_path}
         if not ev.is_directory:
@@ -143,6 +146,9 @@ class EventHandler(Service, FileSystemEventHandler):
     @log_event()
     def on_modified(self, ev):
         """Called when an existing inode is modified"""
+
+        import ipdb; ipdb.set_trace()
+
         # self.mk_inode(ev).addCallback(self._state_manager.modify,
         #                               directory=ev.is_directory)
 
