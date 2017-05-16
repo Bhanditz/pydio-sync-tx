@@ -43,7 +43,9 @@ class Engine(Service):
         def run_startup_script():
             with open(SQL_INIT_FILE) as f:
                 run_script = lambda c, s: c.executescript(s)
-                return self._db.runInteraction(run_script, f.read())
+                self._db.runInteraction(run_script, f.read())
+                self.log.debug("database initialized")
+
 
         try:
             yield self._db.runQuery("SELECT * FROM ajxp_index LIMIT 1;")
