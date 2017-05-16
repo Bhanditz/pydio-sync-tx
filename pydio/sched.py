@@ -6,7 +6,7 @@ from twisted.application.service import MultiService
 from twisted.application.internet import TimerService
 
 from .engine import sqlite
-from .merger import SQLiteMerger
+from .merger import TwoWayMerger
 from .synchronizable import Workspace
 from .storage import fs
 
@@ -60,7 +60,7 @@ class Scheduler(MultiService):
             )
 
 
-            merger = SQLiteMerger(lw, rw)
+            merger = TwoWayMerger(lw, rw)
             trigger = TimerService(cfg.pop("frequency", .025), merger.sync)
 
             self.addService(Job(name, merger, trigger))

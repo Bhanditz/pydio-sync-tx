@@ -21,7 +21,7 @@ class ConcurrentMerge(RuntimeError):
 
 
 @implementer(IMerger)
-class SQLiteMerger(MultiService):
+class TwoWayMerger(MultiService):
     """Synchronize two ISynchronizables using an SQLite table"""
 
     log = Logger()
@@ -60,8 +60,6 @@ class SQLiteMerger(MultiService):
 
     @defer.inlineCallbacks
     def _merge(self):
-        # TODO init_global_progress() (I think this is needed for WebUI feedback)
-
         yield self.assert_volumes_ready()
         yield self._fetch_changes()
 

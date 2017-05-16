@@ -29,10 +29,10 @@ class DummySynchronizable(Service):
 
 
 class TestIMerger(TestCase):
-    def test_SQLiteMerger(self):
+    def test_TwoWayMerger(self):
         self.assertTrue(
-            IMerger.implementedBy(merger.SQLiteMerger),
-            "SQLiteMerger does not implement IMerger"
+            IMerger.implementedBy(merger.TwoWayMerger),
+            "TwoWayMerger does not implement IMerger"
         )
 
 
@@ -43,7 +43,7 @@ class TestEnforceISynchronizable(TestCase):
     def test_enforce_local(self):
         self.assertRaises(
             DoesNotImplement,
-            merger.SQLiteMerger,
+            merger.TwoWayMerger,
             None,
             self.synchronizable,
         )
@@ -51,17 +51,17 @@ class TestEnforceISynchronizable(TestCase):
     def test_enforce_remote(self):
         self.assertRaises(
             DoesNotImplement,
-            merger.SQLiteMerger,
+            merger.TwoWayMerger,
             self.synchronizable,
             None,
         )
 
 
-class TestSQLiteMergerSync(TestCase):
+class TestTwoWayMergerSync(TestCase):
     def setUp(self):
         self.local = DummySynchronizable()
         self.remote = DummySynchronizable()
-        self.merger = merger.SQLiteMerger(self.local, self.remote)
+        self.merger = merger.TwoWayMerger(self.local, self.remote)
 
     def tearDown(self):
         del self.local
