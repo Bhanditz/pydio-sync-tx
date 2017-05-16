@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+import os.path as osp
+
 from twisted.logger import Logger
 from twisted.application.service import MultiService
 from twisted.application.internet import TimerService
@@ -6,7 +8,7 @@ from twisted.application.internet import TimerService
 from .engine import sqlite
 from .merger import SQLiteMerger
 from .synchronizable import Workspace
-from .storage import fs, ram
+from .storage import fs
 
 
 class Job(MultiService):
@@ -33,7 +35,7 @@ class Scheduler(MultiService):
     """
     log = Logger()
 
-    def __init__(self, jobs):
+    def __init__(self, data_dir, jobs):
         """
         jobs : dict
             {job name : configuration options}
@@ -47,11 +49,16 @@ class Scheduler(MultiService):
             self.log.info("Configuring {name}", name=name)
 
             lw = Workspace(
-                sqlite.Engine(),
+                sqlite.Engine(osp.join(data_dir, name, "pydio.sqlite")),
                 fs.LocalDirectory(cfg["directory"], filters=cfg["filters"]),
             )
 
-            rw = Workspace(sqlite.Engine(), ram.Volatile())
+            # DEBUG
+            rw = Workspace(
+                sqlite.Engine("/tmp/tmp.sqlite"),
+                fs.LocalDirectory("/tmp/wspace", filters=cfg["filters"]),
+            )
+
 
             merger = SQLiteMerger(lw, rw)
             trigger = TimerService(cfg.pop("frequency", .025), merger.sync)

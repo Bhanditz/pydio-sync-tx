@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+from os import makedirs
 import os.path as osp
 from functools import wraps
 
@@ -6,14 +7,14 @@ from zope.interface import implementer
 
 from twisted.logger import Logger
 from twisted.internet import defer
+from twisted.internet.threads import deferToThread
+from twisted.enterprise import adbapi
 from twisted.application.service import Service
 
-from pydio.util.sqlite import SQLiteService
+from pydio.util.blocking import threaded
 from pydio.engine import IDiffEngine, IStateManager, IDiffStream
 
-
-class Database(SQLiteService):
-    init_script = osp.join(osp.dirname(__file__), "pydio.sql")
+SQL_INIT_FILE = osp.join(osp.dirname(__file__), "pydio.sql")
 
 
 @implementer(IDiffEngine)
@@ -21,21 +22,47 @@ class Engine(Service):
 
     log = Logger()
 
-    def __init__(self, db_file=":memory:"):
+    def __init__(self, db_file):
         super().__init__()
 
         self.log.debug("opening database in {path}", path=db_file.strip(":"))
-        self._db = Database(db_file)
+        self._db_file = db_file
+        self._db = adbapi.ConnectionPool(
+            "sqlite3", db_file, check_same_thread=False,
+        )
+
+    @threaded
+    def _init_db(self):
+        from sqlite3 import OperationalError
+
+        # A closure is necessary, as double-decorating _init_db results in
+        # the top-level decorator receiving a deferred instead of a function,
+        # which triggers the AssertionError that guards against passing a
+        # Deferred to a callback.
+        @defer.inlineCallbacks
+        def _initializer():
+            if not osp.exists(self._db_file):
+                root_path, _ = osp.split(self._db_file)
+                makedirs(root_path)
+
+            try:
+                yield self._db.runQuery("SELECT * FROM ajxp_index LIMIT 1;")
+                self.log.debug("resuming with existing database")
+            except OperationalError:
+                self.log.info("initializing db from `{p}`", p=SQL_INIT_FILE)
+                with open(SQL_INIT_FILE) as f:
+                    run_script = lambda c, s: c.executescript(s)
+                    yield self._db.runInteraction(run_script, f.read())
 
     def startService(self):
-        self.log.info("initializing database from {path}", path=SQL_INIT_FILE)
+        self.log.debug("starting diff engine")
         super().startService()
-        return self._db.startService()
+        return self._init_db()
 
     def stopService(self):
-        self.log.warn("halting")
+        self.log.debug("halting")
         super().stopService()
-        return self._db.stopService()
+        return self._db.close()
 
     @property
     def updater(self):
@@ -87,20 +114,17 @@ class StateManager:
         directive = ("INSERT INTO ajxp_index "
                      "(node_path,bytesize,md5,mtime,stat_result) VALUES "
                      "(?,?,?,?,?);")
-        return self._db.execute(directive, *map(inode.get, params))
+        return self._db.runOperation(directive, map(inode.get, params))
 
     @_log_state_change("delete")
     def delete(self, inode, directory=False):
-        pass  # DEBUG
-        # self._db.runQuery(
-        #     "DELETE FROM ajxp_index WHERE node_path LIKE ?%",
-        #     inode["src_path"],
-        # )
+        self._db.runOperation(
+            "DELETE FROM ajxp_index WHERE node_path LIKE ?%", inode["node_path"]
+        )
 
     @_log_state_change("modify")
     def modify(self, inode, directory=False):
-        if directory:
-            return  # we'll update the files individually, as we're notified
+        import ipdb; ipdb.set_trace()
 
         # params = ("bytesize", "md5", "mtime", "stat_result", "node_path")
         # directive = ("UPDATE ajxp_index "

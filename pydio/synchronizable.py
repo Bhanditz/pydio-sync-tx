@@ -21,7 +21,7 @@ class Workspace(MultiService):
         self.istorage = istorage
         self.addService(istorage)
 
-        istorage.connect(iengine.updater)
+        istorage.connect_state_manager(iengine.updater)
 
     def assert_ready(self):
         if not self.istorage.available:

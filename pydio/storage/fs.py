@@ -43,7 +43,7 @@ class LocalDirectory(MultiService):
         self._filt = None or {}
         self._obs = Observer()
 
-    def connect(self, istateman):
+    def connect_state_manager(self, istateman):
         verifyObject(IStateManager, istateman)
         h = EventHandler(istateman, self._path, self._filt)
         self.addService(h)
@@ -55,6 +55,9 @@ class LocalDirectory(MultiService):
     def stopService(self):
         self._obs.stop()
         return deferToThread(self._obs.join)
+
+    def available(self):
+        osp.exists(self._path)
 
 
 @implementer(IDiffHandler, ISelectiveEventHandler)
@@ -134,8 +137,8 @@ class EventHandler(Service, FileSystemEventHandler):
     @log_event()
     def on_deleted(self, ev):
         """Called when an inode is deleted"""
-        # self.mk_inode(ev).addCallback(self._state_manager.delete,
-        #                               directory=ev.is_directory)
+        self._state_manager.delege({"node_path": ev.src_path},
+                                   directory=ev.is_directory)
 
     @log_event()
     def on_modified(self, ev):

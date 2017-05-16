@@ -7,8 +7,11 @@ from twisted.application.service import IService
 class IStorage(IService):
     """Implements the storage layer within an ISynchronizable"""
 
-    def connect(IDiffEngine):
-        """Connect the storage to an IDiffEngine"""
+    def connect_state_manager(istateman):
+        """Connect the storage to an IStateManager"""
+
+    def available():
+        """Returns True if the underlying storage is available"""
 
 
 class IEventHandler(IService):
