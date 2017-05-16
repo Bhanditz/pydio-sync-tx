@@ -1,7 +1,6 @@
 #! /user/bin/env python
 import os.path as osp
 from functools import partial
-from contextlib import contextmanager
 
 from zope.interface import implementer
 from zope.interface.verify import verifyObject
@@ -39,11 +38,6 @@ class SQLiteMerger(MultiService):
         self.addService(remote)
 
         self.direction = direction
-        self._locked = False
-
-    @property
-    def merging(self):
-        return self._locked
 
     def _fetch_changes(self):
         """Get local and remote changes"""
@@ -52,20 +46,6 @@ class SQLiteMerger(MultiService):
             self.local.get_changes(),
             self.remote.get_changes(),
         ])
-
-    @contextmanager
-    def _lock_for_sync_run(self):
-        """Returns a context manager that locks the SQLiteMerger instance such
-        that new sync runs cannot begin until the present one terminates.
-        """
-        if self.merging:
-            raise ConcurrentMerge
-
-        self._locked = True
-        try:
-            yield
-        finally:
-            self._locked = False
 
     def sync(self):
         try:
@@ -80,16 +60,15 @@ class SQLiteMerger(MultiService):
 
     @defer.inlineCallbacks
     def _merge(self):
-        with self._lock_for_sync_run():
-            # TODO init_global_progress() (I think this is needed for WebUI feedback)
+        # TODO init_global_progress() (I think this is needed for WebUI feedback)
 
-            yield self.assert_volumes_ready()
-            yield self._fetch_changes()
+        yield self.assert_volumes_ready()
+        yield self._fetch_changes()
 
-            # NOTE : Consider creating an interface, IMergeStrategy, that
-            #        abstracts away the details of the merge algoritm.
+        # NOTE : Consider creating an interface, IMergeStrategy, that
+        #        abstracts away the details of the merge algoritm.
 
-            # merge()  # TODO
+        # merge()  # TODO
 
     def assert_volumes_ready(self):  # exported because it's a pure function
         """Verify that local and remote sync targets are present, accessible and
