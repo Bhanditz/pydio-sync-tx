@@ -11,7 +11,6 @@ from twisted.internet.threads import deferToThread
 from twisted.enterprise import adbapi
 from twisted.application.service import Service
 
-from pydio.util.blocking import threaded
 from pydio.engine import IDiffEngine, IStateManager, IDiffStream
 
 SQL_INIT_FILE = osp.join(osp.dirname(__file__), "pydio.sql")
@@ -35,17 +34,15 @@ class Engine(Service):
     def _init_db(self):
         from sqlite3 import OperationalError
 
-        if not osp.exists(self._db_file):
-            root_path, _ = osp.split(self._db_file)
+        root_path, _ = osp.split(self._db_file)
+        if not osp.exists(root_path):
             makedirs(root_path)
 
-        @threaded
         def run_startup_script():
             with open(SQL_INIT_FILE) as f:
                 run_script = lambda c, s: c.executescript(s)
                 self._db.runInteraction(run_script, f.read())
                 self.log.debug("database initialized")
-
 
         try:
             yield self._db.runQuery("SELECT * FROM ajxp_index LIMIT 1;")
@@ -124,8 +121,7 @@ class StateManager:
 
     @_log_state_change("modify")
     def modify(self, inode, directory=False):
-        import ipdb; ipdb.set_trace()
-        
+        pass
         # params = ("bytesize", "md5", "mtime", "stat_result", "node_path")
         # directive = ("UPDATE ajxp_index "
         #              "SET bytesize=?, md5=?, mtime=?, stat_result=? "
