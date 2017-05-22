@@ -1,14 +1,9 @@
 #! /user/bin/env python
-import os.path as osp
-from functools import partial
-
 from zope.interface import implementer
 from zope.interface.verify import verifyObject
 
 from twisted.logger import Logger
 from twisted.internet import defer
-from twisted.enterprise import adbapi
-from twisted.internet.threads import deferToThread
 from twisted.application.service import MultiService
 
 from . import IMerger
