@@ -6,7 +6,7 @@ from tempfile import mkdtemp
 
 from zope.interface.verify import verifyClass
 
-from pydio.engine import sqlite, IDiffEngine
+from pydio.engine import sqlite, IDiffEngine, IStateManager, IDiffStream
 
 
 class TestEngine(TestCase):
@@ -14,7 +14,17 @@ class TestEngine(TestCase):
         verifyClass(IDiffEngine, sqlite.Engine)
 
 
-class TestEngineState(TestCase):
+class TestStateManager(TestCase):
+    def test_IStateManager(self):
+        verifyClass(IStateManager, sqlite.StateManager)
+
+
+class TestDiffStream(TestCase):
+    def test_IDIffStream(self):
+        verifyClass(IDiffStream, sqlite.DiffStream)
+
+
+class TestStateManagement(TestCase):
     """Test state management"""
 
     def setUp(self):
@@ -25,9 +35,12 @@ class TestEngineState(TestCase):
         rmtree(self.ws_local)
         rmtree(self.ws_remote)
 
+    def test_inode_create(self):
+        pass
 
-class TestEngineDiff(TestCase):
-    """Test diff generation"""
+
+class TestDiffStreaming(TestCase):
+    """Test diff streaming"""
 
     def setUp(self):
         self.ws_local = mkdtemp()
