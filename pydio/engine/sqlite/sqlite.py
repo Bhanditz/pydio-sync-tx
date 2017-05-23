@@ -94,6 +94,10 @@ def _log_state_change(verb):
     return decorator
 
 
+def values_as_tuple(d, *param):
+    return tuple(map(d.get, param))
+
+
 @implementer(IStateManager)
 class StateManager:
     """Manages the SQLite database's state, ensuring that it reflects the state
@@ -107,11 +111,16 @@ class StateManager:
 
     @_log_state_change("create")
     def create(self, inode, directory=False):
-        params = ("node_path", "bytesize", "md5", "mtime", "stat_result")
-        directive = ("INSERT INTO ajxp_index "
-                     "(node_path,bytesize,md5,mtime,stat_result) VALUES "
-                     "(?,?,?,?,?);")
-        return self._db.runOperation(directive, map(inode.get, params))
+        params = values_as_tuple(
+            inode, "node_path", "bytesize", "md5", "mtime", "stat_result"
+        )
+
+        directive = (
+            "INSERT INTO ajxp_index (node_path,bytesize,md5,mtime,stat_result) "
+            "VALUES (?,?,?,?,?);"
+        )
+
+        return self._db.runOperation(directive, params)
 
     @_log_state_change("delete")
     def delete(self, inode, directory=False):
@@ -132,5 +141,3 @@ class StateManager:
     def move(self, inode, directory=False):
         pass  # DEBUG
         # raise NotImplementedError("I shall move an inode in ajxp_index")
-
-__all__ = ["Engine", "DiffStream", "StateManager"]

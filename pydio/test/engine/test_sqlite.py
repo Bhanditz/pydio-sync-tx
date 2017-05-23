@@ -1,12 +1,28 @@
 #! /usr/bin/env python
 from twisted.trial.unittest import TestCase
 
+from os import stat
+import os.path as osp
+from pickle import dumps
 from shutil import rmtree
 from tempfile import mkdtemp
+
+from twisted.internet import defer
+from twisted.enterprise import adbapi
 
 from zope.interface.verify import verifyClass
 
 from pydio.engine import sqlite, IDiffEngine, IStateManager, IDiffStream
+
+
+def mk_dummy_inode(path):
+    return {
+        "node_path": path,
+        "bytesize": osp.getsize(path),
+        "mtime": osp.getmtime(path),
+        "stat_result": dumps(stat(path), protocol=4),
+        "md5": "d41d8cd98f00b204e9800998ecf8427e",
+    }
 
 
 class TestEngine(TestCase):
@@ -28,24 +44,55 @@ class TestStateManagement(TestCase):
     """Test state management"""
 
     def setUp(self):
-        self.ws_local = mkdtemp()
-        self.ws_remote = mkdtemp()
+        self.meta = mkdtemp()
+        self.ws = mkdtemp()
+
+        self.db = self._db = adbapi.ConnectionPool(
+            "sqlite3", osp.join(self.ws, "db.sqlite"), check_same_thread=False,
+        )
+        self.stateman = sqlite.StateManager(self.db)
+
+        # Initialize db, returning deferred
+        # If this doesn't work, confirm that deferred chaining out of
+        # t.t.unittest.TestCase.setUp works as expected
+
+        # Yeah, yeah... it blocks... deal with it. </sunglasses>
+        with open(sqlite.SQL_INIT_FILE) as f:
+            script = f.read()
+
+        return self.db.runInteraction(lambda c, s: c.executescript(s), script)
 
     def tearDown(self):
-        rmtree(self.ws_local)
-        rmtree(self.ws_remote)
+        self.db.close()
+        del self.db
+        del self.stateman
 
-    def test_inode_create(self):
-        pass
+        rmtree(self.meta)
+        rmtree(self.ws)
+
+    @defer.inlineCallbacks
+    def test_db_clean(self):
+        """Canary test to ensure that the db is initialized in a blank state"""
+
+        res = yield self.db.runQuery("SELECT * FROM ajxp_index LIMIT 1")
+        self.assertFalse(res, "dirty test:  table `ajxp_index` is not empty")
+
+        res = yield self.db.runQuery("SELECT * FROM ajxp_changes LIMIT 1")
+        self.assertFalse(res, "dirty test:  table `ajxp_changes` is not empty")
+
+    @defer.inlineCallbacks
+    def test_inode_create_file(self):
+        path = osp.join(self.ws, "test.txt")
+        with open(path, "wt") as f:
+            pass
+
+        inode = mk_dummy_inode(path)
+        yield self.stateman.create(inode)
+
+        entry = yield self.db.runQuery("SELECT * FROM ajxp_index")
+        emsg = "got {0} results, expected 1.  Are canary tests failing?"
+        self.assertFalse(entry, emsg.format(len(entry)))
 
 
 class TestDiffStreaming(TestCase):
     """Test diff streaming"""
-
-    def setUp(self):
-        self.ws_local = mkdtemp()
-        self.ws_remote = mkdtemp()
-
-    def tearDown(self):
-        rmtree(self.ws_local)
-        rmtree(self.ws_remote)
