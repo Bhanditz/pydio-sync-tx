@@ -86,8 +86,7 @@ class EventHandler(Service, FileSystemEventHandler):
     def exclude(self):
         return tuple(self._filt.get("exclude", []))
 
-    @staticmethod
-    def match_any(globlist, path):
+    def match_any(self, globlist, path):
         """Returns true if the path is matched by at least one of the UNIX wildcard
         expressions in `globlist`.
         """
