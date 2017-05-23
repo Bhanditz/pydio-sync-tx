@@ -21,6 +21,8 @@ from . import IDiffHandler, ISelectiveEventHandler
 from pydio.storage import IStorage
 from pydio.engine import IStateManager
 
+MD5_DIRECTORY = "directory"
+
 
 def log_event(lvl="info"):
     def decorator(fn):
@@ -122,11 +124,9 @@ class EventHandler(Service, FileSystemEventHandler):
             stat_result=stat(path)
         )
 
-    @log_event()
     @defer.inlineCallbacks
-    def on_created(self, ev):
-        """Called when an inode is created"""
-        import ipdb; ipdb.set_trace()
+    def new_node(self, ev):
+        """Create a new dict representing an inode."""
 
         inode = {"node_path": ev.src_path}
         if not ev.is_directory:
@@ -134,9 +134,16 @@ class EventHandler(Service, FileSystemEventHandler):
             inode.update(stats)
             inode["md5"] = yield self.compute_file_hash(ev.src_path)
         else:
-            inode["md5"] = "directory"
+            inode["md5"] = MD5_DIRECTORY
+        return inode
 
-        self._state_manager.create(inode, directory=ev.is_directory)
+    @log_event()
+    def on_created(self, ev):
+        """Called when an inode is created"""
+        self.new_node(ev).addCallback(
+            self._state_manager.create,
+            directory=ev.is_directory
+        )
 
     @log_event()
     def on_deleted(self, ev):
@@ -149,6 +156,20 @@ class EventHandler(Service, FileSystemEventHandler):
         """Called when an existing inode is modified"""
 
         import ipdb; ipdb.set_trace()
+
+        # is it a directory?
+        #   if so, are their files contained within?
+        #       if so get a handle on the most recently updated file
+        #   else, return
+        #
+        #   is that file actually a file (as opposed to a subdir)?
+        #      if so, update the db.  (what about the others?)
+        #   else, return
+        #
+        # if it's not a directory:
+        #   check if the file still exists, if not, return, else update
+
+        # tl;dr:  (1) if it's a dir, act on sub-inodes (2) update the db
 
         # self.mk_inode(ev).addCallback(self._state_manager.modify,
         #                               directory=ev.is_directory)
