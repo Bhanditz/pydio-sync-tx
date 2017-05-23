@@ -2,6 +2,7 @@
 from os import stat
 import os.path as osp
 from hashlib import md5
+from pickle import dumps
 from fnmatch import fnmatch
 from functools import wraps
 
@@ -113,15 +114,15 @@ class EventHandler(Service, FileSystemEventHandler):
 
     @threaded
     def compute_file_hash(self, path):
-        with open(path) as f:
-            return md5(f.read().encode("utf-8")).hexdigest()
+        with open(path, "rb") as f:
+            return md5(f.read()).hexdigest()
 
     @threaded
     def fs_stats(self, path):
         return dict(
             bytesize=osp.getsize(path),
             mtime=osp.getmtime(path),
-            stat_result=stat(path)
+            stat_result=dumps(stat(path), protocol=4),
         )
 
     @defer.inlineCallbacks
