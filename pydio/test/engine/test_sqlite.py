@@ -1,10 +1,10 @@
 #! /usr/bin/env python
 from twisted.trial.unittest import TestCase
 
-from os import stat, mkdir
 import os.path as osp
 from pickle import dumps
 from shutil import rmtree
+from os import stat, mkdir
 from tempfile import mkdtemp
 
 from twisted.internet import defer
@@ -47,8 +47,8 @@ class TestStateManagement(TestCase):
         self.meta = mkdtemp()
         self.ws = mkdtemp()
 
-        self.db = self._db = adbapi.ConnectionPool(
-            "sqlite3", osp.join(self.ws, "db.sqlite"), check_same_thread=False,
+        self.db = adbapi.ConnectionPool(
+            "sqlite3", osp.join(self.meta, "db.sqlite"), check_same_thread=False,
         )
         self.stateman = sqlite.StateManager(self.db)
 
@@ -91,7 +91,8 @@ class TestStateManagement(TestCase):
 
         entry = yield self.db.runQuery("SELECT * FROM ajxp_index")
         emsg = "got {0} results, expected 1.  Are canary tests failing?"
-        self.assertFalse(entry, emsg.format(len(entry)))
+        lentry = len(entry)
+        self.assertTrue(lentry == 1, emsg.format(lentry))
 
     @defer.inlineCallbacks
     def test_inode_create_dir(self):
@@ -100,6 +101,11 @@ class TestStateManagement(TestCase):
 
         inode = mk_dummy_inode(path, isdir=True)
         yield self.stateman.create(inode, directory=True)
+
+        entry = yield self.db.runQuery("SELECT * FROM ajxp_index")
+        emsg = "got {0} results, expected 1.  Are canary tests failing?"
+        lentry = len(entry)
+        self.assertTrue(lentry == 1, emsg.format(lentry))
 
 
 class TestDiffStreaming(TestCase):
