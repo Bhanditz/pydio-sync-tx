@@ -2,3 +2,4 @@ pyyaml
 twisted
 watchdog
 appdirs
+anytree>=2.2.0
