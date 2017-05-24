@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 from twisted.trial.unittest import TestCase
 
-from os import stat
+from os import stat, mkdir
 import os.path as osp
 from pickle import dumps
 from shutil import rmtree
@@ -15,13 +15,13 @@ from zope.interface.verify import verifyClass
 from pydio.engine import sqlite, IDiffEngine, IStateManager, IDiffStream
 
 
-def mk_dummy_inode(path):
+def mk_dummy_inode(path, isdir=False):
     return {
         "node_path": path,
         "bytesize": osp.getsize(path),
         "mtime": osp.getmtime(path),
         "stat_result": dumps(stat(path), protocol=4),
-        "md5": "d41d8cd98f00b204e9800998ecf8427e",
+        "md5": "directory" if isdir else "d41d8cd98f00b204e9800998ecf8427e",
     }
 
 
@@ -87,11 +87,19 @@ class TestStateManagement(TestCase):
             pass
 
         inode = mk_dummy_inode(path)
-        yield self.stateman.create(inode)
+        yield self.stateman.create(inode, directory=False)
 
         entry = yield self.db.runQuery("SELECT * FROM ajxp_index")
         emsg = "got {0} results, expected 1.  Are canary tests failing?"
         self.assertFalse(entry, emsg.format(len(entry)))
+
+    @defer.inlineCallbacks
+    def test_inode_create_dir(self):
+        path = osp.join(self.ws, "tests")
+        mkdir(path)
+
+        inode = mk_dummy_inode(path, isdir=True)
+        yield self.stateman.create(inode, directory=True)
 
 
 class TestDiffStreaming(TestCase):

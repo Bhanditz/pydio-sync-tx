@@ -15,6 +15,10 @@ from pydio.engine import IDiffEngine, IStateManager, IDiffStream
 
 SQL_INIT_FILE = osp.join(osp.dirname(__file__), "pydio.sql")
 
+def values_as_tuple(d, *param):
+    """Return the values for each key in `param` as a tuple"""
+    return tuple(map(d.get, param))
+
 
 @implementer(IDiffEngine)
 class Engine(Service):
@@ -92,10 +96,6 @@ def _log_state_change(verb):
             fn(self, inode, directory)
         return logger
     return decorator
-
-
-def values_as_tuple(d, *param):
-    return tuple(map(d.get, param))
 
 
 @implementer(IStateManager)
