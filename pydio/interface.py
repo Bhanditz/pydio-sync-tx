@@ -11,6 +11,12 @@ class IMerger(Interface):
         """Synchronize"""
 
 
+class IMergeStrategy(Interface):
+    """Responsible for implementing a merge algorithm that consumes a n streams
+    of changes.
+    """
+
+
 class ISynchronizable(IService):
     """Represents one side of a synchronization equation"""
 

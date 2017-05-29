@@ -6,13 +6,8 @@ from twisted.logger import Logger
 from twisted.internet import defer
 from twisted.application.service import MultiService
 
-from . import IMerger
+from . import IMerger, IMergeStrategy
 from .synchronizable import ISynchronizable
-
-
-class ConcurrentMerge(RuntimeError):
-    """Signals that a new merge was attempted before the previous one finished
-    """
 
 
 @implementer(IMerger)
@@ -42,19 +37,11 @@ class TwoWayMerger(MultiService):
             self.remote.get_changes(),
         ])
 
-    def sync(self):
-        try:
-            d = dict(up=":==>", down="<==:").get(self.direction, "<==>")
-            self.log.info("Merging {m.local} {dir} {m.remote}", m=self, dir=d)
-
-            # self._merge handles locking and returns a Deferred
-            return self._merge()
-
-        except ConcurrentMerge:
-            self.log.warn("Previous merge not terminated.  Skipping.")
-
     @defer.inlineCallbacks
-    def _merge(self):
+    def sync(self):
+        d = dict(up=":==>", down="<==:").get(self.direction, "<==>")
+        self.log.info("Merging {m.local} {dir} {m.remote}", m=self, dir=d)
+
         yield self.assert_volumes_ready()
         yield self._fetch_changes()
 

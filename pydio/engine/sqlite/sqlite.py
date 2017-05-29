@@ -124,20 +124,24 @@ class StateManager:
 
     @_log_state_change("delete")
     def delete(self, inode, directory=False):
-        self._db.runOperation(
+        return self._db.runOperation(
             "DELETE FROM ajxp_index WHERE node_path LIKE ?%", inode["node_path"]
         )
 
     @_log_state_change("modify")
     def modify(self, inode, directory=False):
-        pass
-        # params = ("bytesize", "md5", "mtime", "stat_result", "node_path")
-        # directive = ("UPDATE ajxp_index "
-        #              "SET bytesize=?, md5=?, mtime=?, stat_result=? "
-        #              "WHERE node_path=?")
-        # self._db.runQuery(directive, map(inode.get, params))
+        params = values_as_tuple(
+            inode,
+            ("bytesize", "md5", "mtime", "stat_result", "node_path"),
+        )
+
+        directive = (
+            "UPDATE ajxp_index SET bytesize=?, md5=?, mtime=?, stat_result=? "
+            "WHERE node_path=?"
+        )
+
+        return self._db.runQuery(directive, params)
 
     @_log_state_change("move")
     def move(self, inode, directory=False):
-        pass  # DEBUG
-        # raise NotImplementedError("I shall move an inode in ajxp_index")
+        raise NotImplementedError("I shall move an inode in ajxp_index")
