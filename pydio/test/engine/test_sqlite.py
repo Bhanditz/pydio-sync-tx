@@ -9,6 +9,7 @@ from tempfile import mkdtemp
 
 from twisted.internet import defer
 from twisted.enterprise import adbapi
+from twisted.internet import task, reactor
 
 from zope.interface.verify import verifyClass
 
@@ -48,7 +49,11 @@ class TestStateManagement(TestCase):
         self.ws = mkdtemp()
 
         self.db = adbapi.ConnectionPool(
-            "sqlite3", osp.join(self.meta, "db.sqlite"), check_same_thread=False,
+            "sqlite3",
+            osp.join(self.meta, "db.sqlite"),
+            check_same_thread=False,
+            cp_min=1,
+            cp_max=1,
         )
         self.stateman = sqlite.StateManager(self.db)
 
@@ -61,7 +66,6 @@ class TestStateManagement(TestCase):
         self.db.close()
         del self.db
         del self.stateman
-        del self.d
 
         rmtree(self.meta)
         rmtree(self.ws)
@@ -96,21 +100,20 @@ class TestStateManagement(TestCase):
         lentry = len(entry)
         self.assertTrue(lentry == 1, emsg.format(lentry))
 
-    # @defer.inlineCallbacks
-    # def test_inode_create_dir(self):
-    #
-    #     yield self.d
-    #
-    #     path = osp.join(self.ws, "tests")
-    #     mkdir(path)
-    #
-    #     inode = mk_dummy_inode(path, isdir=True)
-    #     yield self.stateman.create(inode, directory=True)
-    #
-    #     entry = yield self.db.runQuery("SELECT * FROM ajxp_index")
-    #     emsg = "got {0} results, expected 1.  Are canary tests failing?"
-    #     lentry = len(entry)
-    #     self.assertTrue(lentry == 1, emsg.format(lentry))
+    @defer.inlineCallbacks
+    def test_inode_create_dir(self):
+        yield self.d
+
+        path = osp.join(self.ws, "tests")
+        mkdir(path)
+
+        inode = mk_dummy_inode(path, isdir=True)
+        yield self.stateman.create(inode, directory=True)
+
+        entry = yield self.db.runQuery("SELECT * FROM ajxp_index")
+        emsg = "got {0} results, expected 1.  Are canary tests failing?"
+        lentry = len(entry)
+        self.assertTrue(lentry == 1, emsg.format(lentry))
 
 
 class TestDiffStreaming(TestCase):
