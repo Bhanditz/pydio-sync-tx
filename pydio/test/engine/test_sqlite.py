@@ -8,7 +8,7 @@ from os import stat, mkdir
 from twisted.internet import defer
 from twisted.internet import task, reactor
 
-from zope.interface.verify import verifyClass
+from zope.interface.verify import verifyClass, verifyObject
 
 from pydio.util.adbapi import ConnectionManager
 from pydio.engine import sqlite, IDiffEngine, IStateManager, IDiffStream
@@ -25,8 +25,17 @@ def mk_dummy_inode(path, isdir=False):
 
 
 class TestEngine(TestCase):
+    def setUp(self):
+        self.engine = sqlite.Engine(":memory:")
+
     def test_IDiffEngine(self):
         verifyClass(IDiffEngine, sqlite.Engine)
+
+    def test_updater(self):
+        verifyObject(IStateManager, self.engine.updater)
+
+    def test_stream(self):
+        verifyObject(IDiffStream, self.engine.stream)
 
 
 class TestStateManager(TestCase):
@@ -174,7 +183,7 @@ class TestStateManagement(TestCase):
             "SELECT mtime, md5 FROM ajxp_index WHERE node_path=?;",
             (path,),
         )
-        
+
         self.assertEqual(mtime, inode["mtime"])
         self.assertEqual(md5, inode["md5"])
 
