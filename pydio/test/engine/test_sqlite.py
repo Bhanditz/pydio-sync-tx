@@ -28,6 +28,23 @@ class TestEngine(TestCase):
     def setUp(self):
         self.engine = sqlite.Engine(":memory:")
 
+    @defer.inlineCallbacks
+    def test_init_db(self):
+        yield self.engine._init_db()  # normally called by startService()
+
+        tables = (
+            "ajxp_changes",
+            "ajxp_index",
+            "ajxp_last_buffer",
+            "ajxp_node_status",
+            "events"
+        )
+        stmnt = "SELECT name FROM sqlite_master WHERE type='table' AND name=?;"
+
+        for t in tables:
+            ok = yield self.engine._db.runQuery(stmnt, (t,))
+            self.assertTrue(ok, "table {0} does not exist".format(t))
+
     def test_IDiffEngine(self):
         verifyClass(IDiffEngine, sqlite.Engine)
 
