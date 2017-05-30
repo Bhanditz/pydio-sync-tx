@@ -25,15 +25,15 @@ class TestConnectionPool(TestCase):
         self.assertFalse(self.cm.connections, "dirty ConnectionManager")
 
     def test_min_connections(self):
-        mc = self.cm.min
-        self.assertTrue(
-            mc == 1, "expected min connections == 1, set to {0}".format(mc),
+        self.assertEquals(
+            self.cm.min, 1,
+            "expected min connections == 1, set to {0}".format(self.cm.min),
         )
 
     def test_max_connections(self):
-        mc = self.cm.max
-        self.assertTrue(
-            mc == 1, "expected min connections == 1, set to {0}".format(mc),
+        self.assertEquals(
+            self.cm.max, 1,
+            "expected min connections == 1, set to {0}".format(self.cm.max),
         )
 
     @defer.inlineCallbacks
@@ -51,8 +51,10 @@ class TestConnectionPool(TestCase):
             ) for i in range(n_inserts)])
         rows = yield self.cm.runQuery("SELECT * FROM xxx;")
 
-        emsg = "expected {0} rows, got {1}".format(n_inserts, len(rows))
-        self.assertTrue(len(rows) == n_inserts, emsg)
+        self.assertEquals(
+            len(rows), n_inserts,
+            "expected {0} rows, got {1}".format(n_inserts, len(rows)),
+        )
 
     @defer.inlineCallbacks
     def test_max_conn_enforcement(self):
