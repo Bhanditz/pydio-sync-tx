@@ -29,7 +29,7 @@ with open(osp.join(USR_DATA_DIR, "config.yml")) as f:
 application = service.Application(APP_NAME)
 
 # load the scheduler component
-sched = Scheduler(USR_DATA_DIR, cfg)
+sched = Scheduler(cfg)
 sched.setServiceParent(application)
 
 # load the webUI component

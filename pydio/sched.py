@@ -35,7 +35,7 @@ class Scheduler(MultiService):
     """
     log = Logger()
 
-    def __init__(self, data_dir, jobs):
+    def __init__(self, jobs):
         """
         jobs : dict
             {job name : configuration options}
@@ -49,15 +49,16 @@ class Scheduler(MultiService):
             self.log.debug("configuring job {name}", name=name)
 
             lw = Workspace(
-                sqlite.Engine(osp.join(data_dir, name, "pydio.sqlite")),
+                sqlite.Engine(":memory:"),
                 fs.LocalDirectory(cfg["directory"], filters=cfg["filters"]),
             )
 
             # DEBUG
             rw = Workspace(
-                sqlite.Engine("/tmp/tmp.sqlite"),
+                sqlite.Engine(":memory:"),
                 fs.LocalDirectory("/tmp/wspace", filters=cfg["filters"]),
             )
+            # END DEBUG
 
 
             merger = TwoWayMerger(lw, rw)

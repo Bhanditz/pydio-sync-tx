@@ -8,9 +8,9 @@ from zope.interface import implementer
 from twisted.logger import Logger
 from twisted.internet import defer
 from twisted.internet.threads import deferToThread
-from twisted.enterprise import adbapi
 from twisted.application.service import Service
 
+from pydio.util.adbapi import ConnectionManager
 from pydio.engine import IDiffEngine, IStateManager, IDiffStream
 
 SQL_INIT_FILE = osp.join(osp.dirname(__file__), "pydio.sql")
@@ -30,17 +30,16 @@ class Engine(Service):
 
         self.log.debug("opening database in {path}", path=db_file.strip(":"))
         self._db_file = db_file
-        self._db = adbapi.ConnectionPool(
-            "sqlite3", db_file, check_same_thread=False,
-        )
+        self._db = ConnectionManager(db_file)
 
     @defer.inlineCallbacks
     def _init_db(self):
         from sqlite3 import OperationalError
 
-        root_path, _ = osp.split(self._db_file)
-        if not osp.exists(root_path):
-            makedirs(root_path)
+        if self._db_file != ":memory:":
+            root_path, _ = osp.split(self._db_file)
+            if not osp.exists(root_path):
+                makedirs(root_path)
 
         def run_startup_script():
             with open(SQL_INIT_FILE) as f:
@@ -124,8 +123,10 @@ class StateManager:
 
     @_log_state_change("delete")
     def delete(self, inode, directory=False):
+        path_pattern = inode["node_path"] + "%"
         return self._db.runOperation(
-            "DELETE FROM ajxp_index WHERE node_path LIKE ?%", inode["node_path"]
+            "DELETE FROM ajxp_index WHERE node_path LIKE ?;",
+            (path_pattern,),
         )
 
     @_log_state_change("modify")
@@ -137,7 +138,7 @@ class StateManager:
 
         directive = (
             "UPDATE ajxp_index SET bytesize=?, md5=?, mtime=?, stat_result=? "
-            "WHERE node_path=?"
+            "WHERE node_path=?;"
         )
 
         return self._db.runQuery(directive, params)
