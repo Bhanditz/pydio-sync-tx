@@ -101,12 +101,12 @@ class TestStateManagement(TestCase):
         yield self.stateman.delete(inode, directory=False)
 
         path_pattern = inode["node_path"] + "%"
-        res = yield self.db.runQuery(
+        rows = yield self.db.runQuery(
             "SELECT * FROM ajxp_index WHERE node_path LIKE ?;",
             (path_pattern,),
         )
 
-        self.assertFalse(res, "failed or incomplete deletion")
+        self.assertFalse(rows, "failed or incomplete deletion")
 
     @defer.inlineCallbacks
     def test_inode_delete_dir(self):
@@ -117,12 +117,46 @@ class TestStateManagement(TestCase):
         yield self.stateman.delete(inode, directory=True)
 
         path_pattern = inode["node_path"] + "%"
-        res = yield self.db.runQuery(
+        rows = yield self.db.runQuery(
             "SELECT * FROM ajxp_index WHERE node_path LIKE ?;",
             (path_pattern,),
         )
 
-        self.assertFalse(res, "failed or incomplete deletion")
+        self.assertFalse(rows, "failed or incomplete deletion")
+
+    @defer.inlineCallbacks
+    def test_inode_delete_subtree(self):
+        yield self.d
+
+        create_list = (
+            ("/dir/", True),
+            ("/dir/foo/", True),
+            ("/dir/foo/bar/", True),
+            ("/dir/foo/bar/baz.txt", False),
+            ("/dir/foo/bar/qux.txt", False),
+        )
+
+        for path, is_dir in create_list:
+            inode = mk_dummy_inode(path, isdir=is_dir)
+            yield self.stateman.create(inode, directory=is_dir)
+
+        yield self.stateman.delete(
+            mk_dummy_inode("/dir/foo/", isdir=True),
+            directory=True
+        )
+
+        # only /foo/ should remain
+
+        path_pattern = "/dir%"
+        rows = yield self.db.runQuery(
+            "SELECT * FROM ajxp_index WHERE node_path LIKE ?;",
+            (path_pattern,),
+        )
+
+        self.assertEquals(
+            len(rows), 1,
+            "expected 1 row, got {0}".format(len(rows))
+          )
 
 
 class TestDiffStreaming(TestCase):
