@@ -133,7 +133,7 @@ class StateManager:
     def modify(self, inode, directory=False):
         params = values_as_tuple(
             inode,
-            ("bytesize", "md5", "mtime", "stat_result", "node_path"),
+            "bytesize", "md5", "mtime", "stat_result", "node_path",
         )
 
         directive = (
@@ -141,7 +141,7 @@ class StateManager:
             "WHERE node_path=?;"
         )
 
-        return self._db.runQuery(directive, params)
+        return self._db.runOperation(directive, params)
 
     @_log_state_change("move")
     def move(self, inode, directory=False):

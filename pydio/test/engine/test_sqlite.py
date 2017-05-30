@@ -158,6 +158,30 @@ class TestStateManagement(TestCase):
             "expected 1 row, got {0}".format(len(rows))
           )
 
+    @defer.inlineCallbacks
+    def test_inode_modify_file(self):
+        yield self.d
+
+        path = "/path/to/file.txt"
+        inode = mk_dummy_inode(path)
+        yield self.stateman.create(inode, directory=False)
+
+        inode["mtime"] += 1000
+        inode["md5"] = "e9800998ecf8427ed41d8cd98f00b204"
+        yield self.stateman.modify(inode, directory=False)
+
+        (mtime, md5), = yield self.db.runQuery(
+            "SELECT mtime, md5 FROM ajxp_index WHERE node_path=?;",
+            (path,),
+        )
+        
+        self.assertEqual(mtime, inode["mtime"])
+        self.assertEqual(md5, inode["md5"])
+
+    @defer.inlineCallbacks
+    def test_inode_modify_dir(self):
+        yield self.d
+
 
 class TestDiffStreaming(TestCase):
     """Test diff streaming"""
