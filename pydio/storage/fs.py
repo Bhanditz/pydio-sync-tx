@@ -137,7 +137,7 @@ class EventHandler(Service, events.FileSystemEventHandler):
         elif isinstance(ev, tuple(CREATE_EVENTS.union(MODIFY_EVENTS))):
             inode["md5"] = yield self.compute_file_hash(ev.src_path)
         elif isinstance(ev, tuple(MOVE_EVENTS)):
-            inode["md5"] = yield self.compute_file_hash(ev.dst_path)
+            inode["md5"] = yield self.compute_file_hash(ev.dest_path)
         else:
             emsg = "mishandled {0}.  This should never happen"
             raise RuntimeError(emsg.format(type(ev)))
@@ -145,7 +145,7 @@ class EventHandler(Service, events.FileSystemEventHandler):
     @defer.inlineCallbacks
     def _add_stat_to_inode(self, ev, inode):
         if isinstance(ev, tuple(MOVE_EVENTS)):
-            stats = yield self.fs_stats(ev.dst_path)
+            stats = yield self.fs_stats(ev.dest_path)
         elif isinstance(ev, tuple(CREATE_EVENTS.union(MODIFY_EVENTS))):
             stats = yield self.fs_stats(ev.src_path)
 
@@ -162,8 +162,12 @@ class EventHandler(Service, events.FileSystemEventHandler):
     @defer.inlineCallbacks
     def new_node(self, ev):
         """Create a new dict representing an inode."""
-        inode = {"node_path": ev.src_path}
-        if isinstance(ev, ALL_EVENTS.difference(DELETE_EVENTS)):
+        if isinstance(ev, tuple(MOVE_EVENTS)):
+            inode = dict(node_path=ev.dest_path)
+        else:
+            inode = dict(node_path=ev.src_path)
+
+        if isinstance(ev, tuple(ALL_EVENTS.difference(DELETE_EVENTS))):
             yield defer.gatherResults((
                 self._add_hash_to_inode(ev, inode),
                 self._add_stat_to_inode(ev, inode),
