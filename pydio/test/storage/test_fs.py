@@ -190,7 +190,7 @@ class TestEventHandlerPath(TestCase):
         self.assertEquals(h.relative_path(full_path), expected)
 
 
-class TestEventHandlerInodeGeneration(TestCase):
+class TestEventHandlerInodeChecksum(TestCase):
     def setUp(self):
         self.ws = mkdtemp()
         self.h = fs.EventHandler(DummyStateManager(), self.ws)
@@ -200,7 +200,7 @@ class TestEventHandlerInodeGeneration(TestCase):
         del self.ws, self.h
 
     @defer.inlineCallbacks
-    def test_dir_hash_on_create(self):
+    def test_dir_on_create(self):
         p = osp.join(self.ws, "foo")
         ev = events.DirCreatedEvent(p)
         inode = dict(node_path=p)
@@ -208,7 +208,7 @@ class TestEventHandlerInodeGeneration(TestCase):
         self.assertEquals(inode["md5"], fs.MD5_DIRECTORY)
 
     @defer.inlineCallbacks
-    def test_file_hash_on_create(self):
+    def test_file_on_create(self):
         content = b"now is the winter of our discontent"
         checksum = md5(content).hexdigest()
 
@@ -223,18 +223,43 @@ class TestEventHandlerInodeGeneration(TestCase):
         self.assertEquals(checksum, inode["md5"])
 
     @defer.inlineCallbacks
-    def test_dir_hash_on_delete(self):
+    def test_dir_on_delete(self):
         inode = {}
         ev = events.DirDeletedEvent(osp.join(self.ws, "foo"))
         yield self.h._add_hash_to_inode(ev, inode)
         self.assertEquals(inode["md5"], fs.MD5_DIRECTORY)
 
-    def test_file_hash_on_delete(self):
+    def test_file_on_delete(self):
         ev = events.FileDeletedEvent(osp.join(self.ws, "foo.txt"))
         return self.assertFailure(
             self.h._add_hash_to_inode(ev, {}),
             RuntimeError,
         )
+
+    @defer.inlineCallbacks
+    def test_dir_on_modify(self):
+        p = osp.join(self.ws, "foo")
+        ev = events.DirModifiedEvent(p)
+        inode = dict(node_path=p)
+        yield self.h._add_hash_to_inode(ev, inode)
+        self.assertEquals(inode["md5"], fs.MD5_DIRECTORY)
+
+    @defer.inlineCallbacks
+    def test_file_on_modify(self):
+        content = b"now is the winter of our discontent"
+        checksum = md5(content).hexdigest()
+
+        p = osp.join(self.ws, "foo.txt")
+        with open(p, "wb") as f:
+            f.write(content)
+
+        ev = events.FileModifiedEvent(p)
+        inode = dict(node_path=p)
+        yield self.h._add_hash_to_inode(ev, inode)
+        self.assertIn("md5", inode, "checksum was not added to inode")
+        self.assertEquals(checksum, inode["md5"])
+
+
     # def test_dir_created(self):
     #     pass
 
