@@ -208,6 +208,38 @@ class TestStateManagement(TestCase):
     def test_inode_modify_dir(self):
         yield self.d
 
+        path = "/path/to/dir/"
+        inode = mk_dummy_inode(path, isdir=True)
+        yield self.stateman.create(inode, directory=True)
+
+        inode["mtime"] += 1000
+        yield self.stateman.modify(inode, directory=True)
+
+        (mtime,), = yield self.db.runQuery(
+            "SELECT mtime FROM ajxp_index WHERE node_path=?", (path,),
+        )
+        self.assertEqual(mtime, inode["mtime"])
+
+    # @defer.inlineCallbacks
+    # def test_inode_move_file(self):
+    #     yield self.d
+    #
+    #     path = "/foo/bar/baz.qux"
+    #     inode = mk_dummy_inode(path)
+    #     yield self.stateman.create(inode)
+    #
+    #
+    #
+    # @defer.inlineCallbacks
+    # def test_inode_move_dir(self):
+    #     yield self.d
+    #
+    #     path = "/foo/bar/"
+    #     inode = mk_dummy_inode(path, isdir=True)
+    #     yield self.stateman.create(inode, directory=True)
+
+
+
 
 class TestDiffStreaming(TestCase):
     """Test diff streaming"""
