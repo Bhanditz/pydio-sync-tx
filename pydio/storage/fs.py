@@ -83,11 +83,11 @@ class EventHandler(Service, FileSystemEventHandler):
 
     @property
     def include(self):
-        return tuple(self._filt.get("include", []))
+        return tuple(self._filt.get("include", tuple()))
 
     @property
     def exclude(self):
-        return tuple(self._filt.get("exclude", []))
+        return tuple(self._filt.get("exclude", tuple()))
 
     def match_any(self, globlist, path):
         """Returns true if the path is matched by at least one of the UNIX wildcard

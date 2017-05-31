@@ -2,7 +2,7 @@
 from twisted.trial.unittest import TestCase
 
 from zope.interface import implementer
-from zope.interface.verify import DoesNotImplement
+from zope.interface.verify import DoesNotImplement, verifyClass
 
 from twisted.application.service import Service
 
@@ -26,6 +26,15 @@ class DummySynchronizable(Service):
     def assert_ready(self):
         if self.fail_assertion:
             raise AssertionError("testing failure case")
+
+
+class TestDummySynchronizable(TestCase):
+    """A canary test meant to ensure DummySynchronizable satisfies
+    ISynchronizable
+    """
+
+    def test_ISynchronizable(self):
+        verifyClass(ISynchronizable, DummySynchronizable)
 
 
 class TestIMerger(TestCase):
