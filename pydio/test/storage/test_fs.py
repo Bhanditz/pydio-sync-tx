@@ -259,6 +259,43 @@ class TestEventHandlerInodeChecksum(TestCase):
         self.assertIn("md5", inode, "checksum was not added to inode")
         self.assertEquals(checksum, inode["md5"])
 
+    @defer.inlineCallbacks
+    def test_dir_on_move(self):
+        p0 = osp.join(self.ws, "foo")
+        p1 = osp.join(self.ws, "foo/bar")
+
+        ev = events.DirMovedEvent(p0, p1)
+        inode = dict(node_path=p1)
+        yield self.h._add_hash_to_inode(ev, inode)
+        self.assertEquals(inode["md5"], fs.MD5_DIRECTORY)
+
+    @defer.inlineCallbacks
+    def test_file_on_move(self):
+        content = b"now is the winter of our discontent"
+        checksum = md5(content).hexdigest()
+
+        p0 = osp.join(self.ws, "foo.txt")
+        p1 = osp.join(self.ws, "bar/foo.txt")
+
+        path, _ = osp.split(p1)
+        os.mkdir(path)
+        with open(p1, "wb") as f:
+            f.write(content)
+
+        ev = events.FileMovedEvent(p0, p1)
+        inode = dict(node_path=p1)
+        yield self.h._add_hash_to_inode(ev, inode)
+        self.assertIn("md5", inode, "checksum was not added to inode")
+        self.assertEquals(checksum, inode["md5"])
+
+
+class TestEventHandlerInodeStat(TestCase):
+    pass
+
+
+class TestEventHandlerNewInode(TestCase):
+    pass
+
 
     # def test_dir_created(self):
     #     pass
