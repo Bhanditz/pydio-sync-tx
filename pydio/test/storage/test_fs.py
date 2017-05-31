@@ -1,11 +1,18 @@
 #! /usr/bin/env python
 from twisted.trial.unittest import TestCase
 
+import os
 import os.path as osp
-from tempfile import TemporaryDirectory, TemporaryFile
+from hashlib import md5
+from shutil import rmtree
+from tempfile import TemporaryDirectory, mkdtemp
 
 from zope.interface import implementer
 from zope.interface.verify import verifyClass, DoesNotImplement
+
+from twisted.internet import defer
+
+from watchdog import events
 
 from pydio.engine import IStateManager
 from pydio.storage import fs, IStorage, IDiffHandler, ISelectiveEventHandler
@@ -184,7 +191,60 @@ class TestEventHandlerPath(TestCase):
 
 
 class TestEventHandlerInodeGeneration(TestCase):
-    pass
+    def setUp(self):
+        self.ws = mkdtemp()
+        self.h = fs.EventHandler(DummyStateManager(), self.ws)
+
+    def tearDown(self):
+        rmtree(self.ws)
+        del self.ws, self.h
+
+    @defer.inlineCallbacks
+    def test_dir_hash_on_create(self):
+        p = osp.join(self.ws, "foo")
+        ev = events.DirCreatedEvent(p)
+        inode = dict(node_path=p)
+        yield self.h._add_hash_to_inode(ev, inode)
+        self.assertEquals(inode["md5"], fs.MD5_DIRECTORY)
+
+    @defer.inlineCallbacks
+    def test_file_hash_on_create(self):
+        content = b"now is the winter of our discontent"
+        checksum = md5(content).hexdigest()
+
+        p = osp.join(self.ws, "foo")
+        with open(p, "wb") as f:
+            f.write(content)
+
+        ev = events.FileCreatedEvent(p)
+        inode = dict(node_path=p)
+        yield self.h._add_hash_to_inode(ev, inode)
+        self.assertIn("md5", inode, "checksum was not added to inode")
+        self.assertEquals(checksum, inode["md5"])
+
+    # def test_dir_created(self):
+    #     pass
+
+    # def test_dir_deleted(self):
+    #     pass
+
+    # def test_dir_modified(self):
+    #     pass
+
+    # def test_dir_moved(self):
+    #     pass
+
+    # def test_file_created(self):
+    #     pass
+
+    # def test_file_deleted(self):
+    #     pass
+
+    # def test_file_modified(self):
+    #     pass
+
+    # def test_file_moved(self):
+    #     pass
 
 
 class TestEventhandlerEventDispatch(TestCase):
