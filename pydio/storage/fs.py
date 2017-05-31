@@ -76,7 +76,8 @@ class EventHandler(Service, FileSystemEventHandler):
 
         self._filt = filters or {}
 
-        self._base_path = base_path
+        # add a trailing slash if it's not already there
+        self._base_path = osp.join(osp.normpath(base_path), "")
 
         verifyObject(IStateManager, state_manager)
         self._state_manager = state_manager
@@ -95,13 +96,13 @@ class EventHandler(Service, FileSystemEventHandler):
         """
         return any(map(lambda glb: fnmatch(path, glb), globlist))
 
-    def base_path(self, path):
-        return path.replace(self._base_path, "")
+    def relative_path(self, path):
+        return osp.normpath(path).replace(self._base_path, "")
 
     def _filter_event(self, ev):
         included = self.match_any(self.include, ev.src_path)
         excluded = self.match_any(self.exclude, ev.src_path)
-        non_root = bool(self.base_path(ev.src_path))
+        non_root = bool(self.relative_path(ev.src_path))
         return all((included, not excluded, non_root))
 
     def dispatch(self, ev):

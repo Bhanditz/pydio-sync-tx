@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 from twisted.trial.unittest import TestCase
 
-from tempfile import TemporaryDirectory
+import os.path as osp
+from tempfile import TemporaryDirectory, TemporaryFile
 
 from zope.interface import implementer
 from zope.interface.verify import verifyClass, DoesNotImplement
@@ -72,7 +73,7 @@ class TestLocalDirectory(TestCase):
                              "watch job not registerd")
 
 
-class TestEventHandler(TestCase):
+class TestEventHandlerState(TestCase):
     def test_IDiffHandler(self):
         verifyClass(IDiffHandler, fs.EventHandler)
 
@@ -112,8 +113,79 @@ class TestEventHandler(TestCase):
 
         self.assertNot(include, "default include is not empty")
 
+    def test_include_nonempty(self):
+        h = fs.EventHandler(DummyStateManager(), "", filters=dict(include=["*"]))
+        self.assertIn("*", h.include, "include wildcard not found")
+
+    def test_include_nonempty(self):
+        h = fs.EventHandler(DummyStateManager(), "", filters=dict(exclude=["*"]))
+        self.assertIn("*", h.exclude, "exclude wildcard not found")
+
     def test_exclude_emtpy(self):
         exclude = fs.EventHandler(DummyStateManager(), "").exclude
         self.assertIsInstance(exclude, tuple,
                               "expected tuple, got {0}".format(type(exclude)))
         self.assertNot(exclude, "default exclude is not empty")
+
+
+class TestEventHandlerPath(TestCase):
+    def test_base_path_clean(self):
+        p = "/foo/bar/"
+        self.assertEquals(
+            p, fs.EventHandler(DummyStateManager(), p)._base_path,
+            "error normalizing non-trailing slash",
+        )
+
+    def test_base_path_no_trailing_slash(self):
+        self.assertEquals(
+            "/foo/bar/",
+            fs.EventHandler(DummyStateManager(), "/foo/bar")._base_path,
+            "error normalizing non-trailing slash",
+        )
+
+    def test_base_path_redundant_slash(self):
+        self.assertEquals(
+            "/foo/bar/",
+            fs.EventHandler(DummyStateManager(), "/foo//bar/")._base_path,
+            "error normalizing redundant slash",
+        )
+
+    def test_base_path_indirect_path(self):
+        indirect_path = "/foo/.././foo/bar/"
+        self.assertEquals(
+            "/foo/bar/",
+            fs.EventHandler(DummyStateManager(), indirect_path)._base_path,
+            "error normalizing indirect path",
+        )
+
+    def test_relative_path_clean(self):
+        base_path = "/foo/bar"
+        full_path = "/foo/bar/baz.qux"
+        expected = "baz.qux"
+
+        h = fs.EventHandler(DummyStateManager(), base_path)
+        self.assertEquals(h.relative_path(full_path), expected)
+
+    def test_relative_path_redundant_slash(self):
+        base_path = "/foo/bar"
+        full_path = "/foo///bar//baz.qux"
+        expected = "baz.qux"
+
+        h = fs.EventHandler(DummyStateManager(), base_path)
+        self.assertEquals(h.relative_path(full_path), expected)
+
+    def test_relative_path_indirect_path(self):
+        base_path = "/foo/bar"
+        full_path = "/foo/../foo/bar/./baz.qux"
+        expected = "baz.qux"
+
+        h = fs.EventHandler(DummyStateManager(), base_path)
+        self.assertEquals(h.relative_path(full_path), expected)
+
+
+class TestEventHandlerInodeGeneration(TestCase):
+    pass
+
+
+class TestEventhandlerEventDispatch(TestCase):
+    pass
