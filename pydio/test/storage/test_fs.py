@@ -212,7 +212,7 @@ class TestEventHandlerInodeGeneration(TestCase):
         content = b"now is the winter of our discontent"
         checksum = md5(content).hexdigest()
 
-        p = osp.join(self.ws, "foo")
+        p = osp.join(self.ws, "foo.txt")
         with open(p, "wb") as f:
             f.write(content)
 
@@ -222,6 +222,19 @@ class TestEventHandlerInodeGeneration(TestCase):
         self.assertIn("md5", inode, "checksum was not added to inode")
         self.assertEquals(checksum, inode["md5"])
 
+    @defer.inlineCallbacks
+    def test_dir_hash_on_delete(self):
+        inode = {}
+        ev = events.DirDeletedEvent(osp.join(self.ws, "foo"))
+        yield self.h._add_hash_to_inode(ev, inode)
+        self.assertEquals(inode["md5"], fs.MD5_DIRECTORY)
+
+    def test_file_hash_on_delete(self):
+        ev = events.FileDeletedEvent(osp.join(self.ws, "foo.txt"))
+        return self.assertFailure(
+            self.h._add_hash_to_inode(ev, {}),
+            RuntimeError,
+        )
     # def test_dir_created(self):
     #     pass
 
