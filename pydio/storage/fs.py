@@ -14,8 +14,8 @@ from twisted.internet import defer
 from twisted.internet.threads import deferToThread
 from twisted.application.service import Service, MultiService
 
+from watchdog import events
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
 
 from pydio.util.blocking import threaded
 from . import IDiffHandler, ISelectiveEventHandler
@@ -66,13 +66,13 @@ class LocalDirectory(MultiService):
 
 
 @implementer(IDiffHandler, ISelectiveEventHandler)
-class EventHandler(Service, FileSystemEventHandler):
+class EventHandler(Service, events.FileSystemEventHandler):
 
     log = Logger()
 
     def __init__(self, state_manager, base_path, filters=None):
         Service.__init__(self)
-        FileSystemEventHandler.__init__(self)
+        events.FileSystemEventHandler.__init__(self)
 
         self._filt = filters or {}
 
@@ -109,7 +109,7 @@ class EventHandler(Service, FileSystemEventHandler):
         # Filter out irrelevant envents
         # No need to test this function.  It's covered by watchdog's unit tests.
         if self._filter_event(ev):
-            FileSystemEventHandler.dispatch(self, ev)
+            events.FileSystemEventHandler.dispatch(self, ev)
         else:
             self.log.debug("ignoring {ev}", ev=ev)
 
