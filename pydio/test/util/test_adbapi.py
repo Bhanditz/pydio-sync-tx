@@ -58,6 +58,12 @@ class TestConnectionPool(TestCase):
 
     @defer.inlineCallbacks
     def test_max_conn_enforcement(self):
+        """Initially intended as an exploratory test, but there's no reason to
+        remove it now that it's written.  Ensures that cp_max is enforced in
+        t.e.adbapi.ConnectionPool (as opposed to, say, a soft limit or an
+        exception being thrown).
+        """
+
         yield self.cm.runOperation(
             "CREATE TABLE xxx (k INTEGER PRIMARY KEY AUTOINCREMENT, v INTEGER);"
         )
