@@ -131,22 +131,22 @@ class EventHandler(Service, events.FileSystemEventHandler):
             return md5(f.read()).hexdigest()
 
     @defer.inlineCallbacks
-    def _add_hash(self, ev, inode):
+    def _add_hash_to_inode(self, ev, inode):
         if ev.is_directory:
             inode["md5"] = MD5_DIRECTORY
-        elif isinstance(ev, CREATE_EVENTS.union(MODIFY_EVENTS)):
+        elif isinstance(ev, tuple(CREATE_EVENTS.union(MODIFY_EVENTS))):
             inode["md5"] = yield self.compute_file_hash(ev.src_path)
-        elif isinstance(ev, MOVE_EVENTS):
+        elif isinstance(ev, tuple(MOVE_EVENTS)):
             inode["md5"] = yield self.compute_file_hash(ev.dst_path)
         else:
             emsg = "mishandled {0}.  This should never happen"
             raise RuntimeError(emsg.format(type(ev)))
 
     @defer.inlineCallbacks
-    def _add_stat(self, ev, inode):
-        if isinstance(ev, MOVE_EVENTS):
+    def _add_stat_to_inode(self, ev, inode):
+        if isinstance(ev, tuple(MOVE_EVENTS)):
             stats = yield self.fs_stats(ev.dst_path)
-        elif isinstance(ev, CREATE_EVENTS.union(MODIFY_EVENTS)):
+        elif isinstance(ev, tuple(CREATE_EVENTS.union(MODIFY_EVENTS))):
             stats = yield self.fs_stats(ev.src_path)
 
         inode.update(stats)
@@ -165,8 +165,8 @@ class EventHandler(Service, events.FileSystemEventHandler):
         inode = {"node_path": ev.src_path}
         if isinstance(ev, ALL_EVENTS.difference(DELETE_EVENTS)):
             yield defer.gatherResults((
-                self._add_hash(ev, inode),
-                self._add_stat(ev, inode),
+                self._add_hash_to_inode(ev, inode),
+                self._add_stat_to_inode(ev, inode),
             ))
         defer.returnValue(inode)
 
