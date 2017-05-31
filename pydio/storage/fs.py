@@ -24,6 +24,18 @@ from pydio.engine import IStateManager
 
 MD5_DIRECTORY = "directory"
 
+FILE_EVENTS = {events.FileCreatedEvent, events.FileDeletedEvent,
+               events.FileModifiedEvent, events.FileMovedEvent}
+DIR_EVENTS = {events.DirCreatedEvent, events.DirDeletedEvent,
+              events.DirModifiedEvent, events.DirMovedEvent}
+
+CREATE_EVENTS = {events.FileCreatedEvent, events.DirCreatedEvent}
+DELETE_EVENTS = {events.FileDeletedEvent, events.DirDeletedEvent}
+MODIFY_EVENTS = {events.FileModifiedEvent, events.DirModifiedEvent}
+MOVE_EVENTS = {events.FileMovedEvent, events.DirMovedEvent}
+
+ALL_EVENTS = FILE_EVENTS.union(DIR_EVENTS)
+
 
 def log_event(lvl="info"):
     def decorator(fn):
@@ -118,6 +130,27 @@ class EventHandler(Service, events.FileSystemEventHandler):
         with open(path, "rb") as f:
             return md5(f.read()).hexdigest()
 
+    @defer.inlineCallbacks
+    def _add_hash(self, ev, inode):
+        if ev.is_directory:
+            inode["md5"] = MD5_DIRECTORY
+        elif isinstance(ev, CREATE_EVENTS.union(MODIFY_EVENTS)):
+            inode["md5"] = yield self.compute_file_hash(ev.src_path)
+        elif isinstance(ev, MOVE_EVENTS):
+            inode["md5"] = yield self.compute_file_hash(ev.dst_path)
+        else:
+            emsg = "mishandled {0}.  This should never happen"
+            raise RuntimeError(emsg.format(type(ev)))
+
+    @defer.inlineCallbacks
+    def _add_stat(self, ev, inode):
+        if isinstance(ev, MOVE_EVENTS):
+            stats = yield self.fs_stats(ev.dst_path)
+        elif isinstance(ev, CREATE_EVENTS.union(MODIFY_EVENTS)):
+            stats = yield self.fs_stats(ev.src_path)
+
+        inode.update(stats)
+
     @threaded
     def fs_stats(self, path):
         return dict(
@@ -129,20 +162,18 @@ class EventHandler(Service, events.FileSystemEventHandler):
     @defer.inlineCallbacks
     def new_node(self, ev):
         """Create a new dict representing an inode."""
-
         inode = {"node_path": ev.src_path}
-        if not ev.is_directory:
-            stats = yield self.fs_stats(ev.src_path)
-            inode.update(stats)
-            inode["md5"] = yield self.compute_file_hash(ev.src_path)
-        else:
-            inode["md5"] = MD5_DIRECTORY
-        return inode
+        if isinstance(ev, ALL_EVENTS.difference(DELETE_EVENTS)):
+            yield defer.gatherResults((
+                self._add_hash(ev, inode),
+                self._add_stat(ev, inode),
+            ))
+        defer.returnValue(inode)
 
     @log_event()
     def on_created(self, ev):
         """Called when an inode is created"""
-        self.new_node(ev).addCallback(
+        return self.new_node(ev).addCallback(
             self._state_manager.create,
             directory=ev.is_directory
         )
@@ -150,8 +181,10 @@ class EventHandler(Service, events.FileSystemEventHandler):
     @log_event()
     def on_deleted(self, ev):
         """Called when an inode is deleted"""
-        self._state_manager.delete({"node_path": ev.src_path},
-                                   directory=ev.is_directory)
+        return self.new_node(ev).addCallback(
+            self._state_manager.delete,
+            directory=ev.is_directory
+        )
 
     @log_event()
     def on_modified(self, ev):
