@@ -290,37 +290,126 @@ class TestEventHandlerInodeChecksum(TestCase):
 
 
 class TestEventHandlerInodeStat(TestCase):
-    pass
+    def setUp(self):
+        self.ws = mkdtemp()
+        self.h = fs.EventHandler(DummyStateManager(), self.ws)
+
+    def tearDown(self):
+        rmtree(self.ws)
+        del self.ws, self.h
+
+    # @defer.inlineCallbacks
+    # def test_dir_on_create(self):
+    #     pass
+
+    # @defer.inlineCallbacks
+    # def test_file_on_create(self):
+    #     pass
+    #
+    # @defer.inlineCallbacks
+    # def test_dir_on_delete(self):
+    #     pass
+    #
+    # def test_file_on_delete(self):
+    #     pass
+    #
+    # @defer.inlineCallbacks
+    # def test_dir_on_modify(self):
+    #     pass
+    #
+    # @defer.inlineCallbacks
+    # def test_file_on_modify(self):
+    #     pass
+    #
+    # @defer.inlineCallbacks
+    # def test_dir_on_move(self):
+    #     pass
+    #
+    # @defer.inlineCallbacks
+    # def test_file_on_move(self):
+    #     pass
 
 
 class TestEventHandlerNewInode(TestCase):
-    pass
+    def setUp(self):
+        self.ws = mkdtemp()
+        self.h = fs.EventHandler(DummyStateManager(), self.ws)
 
+    def tearDown(self):
+        rmtree(self.ws)
+        del self.ws, self.h
 
-    # def test_dir_created(self):
+    # @defer.inlineCallbacks
+    # def test_dir_on_create(self):
     #     pass
 
-    # def test_dir_deleted(self):
+    # @defer.inlineCallbacks
+    # def test_file_on_create(self):
     #     pass
-
-    # def test_dir_modified(self):
+    #
+    # @defer.inlineCallbacks
+    # def test_dir_on_delete(self):
     #     pass
-
-    # def test_dir_moved(self):
+    #
+    # def test_file_on_delete(self):
     #     pass
-
-    # def test_file_created(self):
+    #
+    # @defer.inlineCallbacks
+    # def test_dir_on_modify(self):
     #     pass
-
-    # def test_file_deleted(self):
+    #
+    # @defer.inlineCallbacks
+    # def test_file_on_modify(self):
     #     pass
-
-    # def test_file_modified(self):
+    #
+    # @defer.inlineCallbacks
+    # def test_dir_on_move(self):
     #     pass
-
-    # def test_file_moved(self):
+    #
+    # @defer.inlineCallbacks
+    # def test_file_on_move(self):
     #     pass
 
 
 class TestEventhandlerEventDispatch(TestCase):
-    pass
+    def setUp(self):
+        self.ws = mkdtemp()
+        self.h = fs.EventHandler(DummyStateManager(), self.ws)
+
+    def tearDown(self):
+        rmtree(self.ws)
+        del self.ws, self.h
+
+    # def test_filter_event(self):
+    #     pass
+
+    # @defer.inlineCallbacks
+    # def test_dir_on_created(self):
+    #     pass
+
+    # @defer.inlineCallbacks
+    # def test_file_on_created(self):
+    #     pass
+    #
+    # @defer.inlineCallbacks
+    # def test_dir_on_deleted(self):
+    #     pass
+    #
+    # def test_file_on_deleted(self):
+    #     pass
+    #
+    # @defer.inlineCallbacks
+    # def test_dir_on_modified(self):
+    #     pass
+    #
+    # @defer.inlineCallbacks
+    # def test_file_on_modified(self):
+    #     pass
+    #
+    # @defer.inlineCallbacks
+    # def test_dir_on_moved(self):
+    #     pass
+    #
+    # @defer.inlineCallbacks
+    # def test_file_on_moved(self):
+    #     pass
