@@ -124,7 +124,7 @@ class TestEventHandlerState(TestCase):
         h = fs.EventHandler(DummyStateManager(), "", filters=dict(include=["*"]))
         self.assertIn("*", h.include, "include wildcard not found")
 
-    def test_include_nonempty(self):
+    def test_exclude_nonempty(self):
         h = fs.EventHandler(DummyStateManager(), "", filters=dict(exclude=["*"]))
         self.assertIn("*", h.exclude, "exclude wildcard not found")
 
