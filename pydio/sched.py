@@ -1,6 +1,4 @@
 #! /usr/bin/env python
-import os.path as osp
-
 from twisted.logger import Logger
 from twisted.application.service import MultiService
 from twisted.application.internet import TimerService
