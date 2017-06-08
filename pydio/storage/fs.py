@@ -50,6 +50,9 @@ def log_event(lvl="info"):
 
 @implementer(IStorage)
 class LocalDirectory(MultiService):
+
+    log = Logger()
+
     def __init__(self, path, recursive=True, filters=None):
         super().__init__()
 
@@ -65,6 +68,7 @@ class LocalDirectory(MultiService):
         self._obs.schedule(h, self._path, recursive=self._recursive)
 
     def startService(self):
+        self.log.info("syncing local directory {s._path}", s=self)
         super().startService()
         self._obs.start()
 
