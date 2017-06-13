@@ -342,31 +342,30 @@ class TestEventHandlerNewInode(TestCase):
 
     @defer.inlineCallbacks
     def test_dir_on_create(self):
-        sp = osp.join(self.ws)
-        dp = osp.join(self.wd)
-
-        # test move events logic
-        ev = events.DirMovedEvent(sp, dp)
-        d = yield self.h.new_node(ev)
-        self.assertEquals(d['node_path'], dp)
-        self.assertIn('md5', d)
-        self.assertIn('stat_result', d)
+        p = osp.join(self.ws)
 
         # test delete events logic
-        ev = events.DirDeletedEvent(sp)
+        ev = events.DirCreatedEvent(p)
         d = yield self.h.new_node(ev)
-        self.assertEquals(d['node_path'], sp)
-        self.assertNotIn('md5', d)
-        self.assertNotIn('stat_result', d)
+        self.assertEquals(d['node_path'], p)
+        self.assertIn('md5', d)
+        self.assertIn('stat_result', d)
 
     # @defer.inlineCallbacks
     # def test_file_on_create(self):
     #     pass
     #
-    # @defer.inlineCallbacks
-    # def test_dir_on_delete(self):
-    #     pass
-    #
+    @defer.inlineCallbacks
+    def test_dir_on_delete(self):
+        p = osp.join(self.ws)
+
+        # test delete events logic
+        ev = events.DirDeletedEvent(p)
+        d = yield self.h.new_node(ev)
+        self.assertEquals(d['node_path'], p)
+        self.assertNotIn('md5', d)
+        self.assertNotIn('stat_result', d)
+
     # def test_file_on_delete(self):
     #     pass
     #
@@ -378,10 +377,18 @@ class TestEventHandlerNewInode(TestCase):
     # def test_file_on_modify(self):
     #     pass
     #
-    # @defer.inlineCallbacks
-    # def test_dir_on_move(self):
-    #     pass
-    #
+    @defer.inlineCallbacks
+    def test_dir_on_move(self):
+        sp = osp.join(self.ws)
+        dp = osp.join(self.wd)
+
+        # test move events logic
+        ev = events.DirMovedEvent(sp, dp)
+        d = yield self.h.new_node(ev)
+        self.assertEquals(d['node_path'], dp)
+        self.assertIn('md5', d)
+        self.assertIn('stat_result', d)
+
     # @defer.inlineCallbacks
     # def test_file_on_move(self):
     #     pass
