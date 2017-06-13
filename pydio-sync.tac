@@ -3,8 +3,7 @@ import os.path as osp
 
 import yaml
 
-from filecmp import cmp
-
+from shutil import copyfile
 from appdirs import user_data_dir
 
 from twisted.application import service
@@ -24,7 +23,6 @@ if not osp.exists(TMP_DATA_DIR):
 
 # Initialize user data directory if it hasn't been created
 if not osp.exists(USR_DATA_DIR):
-	from shutil import copyfile
 	os.makedirs(USR_DATA_DIR)
 
 # Update config file
