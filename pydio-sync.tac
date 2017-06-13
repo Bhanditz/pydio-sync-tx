@@ -2,6 +2,9 @@ import os
 import os.path as osp
 
 import yaml
+
+from filecmp import cmp
+
 from appdirs import user_data_dir
 
 from twisted.application import service
@@ -23,7 +26,9 @@ if not osp.exists(TMP_DATA_DIR):
 if not osp.exists(USR_DATA_DIR):
 	from shutil import copyfile
 	os.makedirs(USR_DATA_DIR)
-	copyfile("config.yml", osp.join(USR_DATA_DIR, "config.yml"))
+
+# Update config file
+copyfile("config.yml", osp.join(USR_DATA_DIR, "config.yml"))
 
 # Load app configuration
 with open(osp.join(USR_DATA_DIR, "config.yml")) as f:
