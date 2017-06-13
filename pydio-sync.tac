@@ -13,6 +13,11 @@ APP_NAME = "pydio-sync"
 USR_DATA_DIR = user_data_dir(
     appname=APP_NAME, appauthor="Abstrium SAS", roaming=True
 )
+TMP_DATA_DIR = '/tmp/wspace/'
+
+# Initialize temp data directory if it doesn't exists
+if not osp.exists(TMP_DATA_DIR):
+	os.makedirs(TMP_DATA_DIR)
 
 # Initialize user data directory if it hasn't been created
 if not osp.exists(USR_DATA_DIR):

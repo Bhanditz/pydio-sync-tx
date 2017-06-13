@@ -113,7 +113,7 @@ class TestEventHandlerState(TestCase):
             "LocalDirectory's filters do not match input dict",
         )
 
-    def test_include_emtpy(self):
+    def test_include_empty(self):
         include = fs.EventHandler(DummyStateManager(), "").include
         self.assertIsInstance(include, tuple,
                               "expected tuple, got {0}".format(type(include)))
@@ -128,7 +128,7 @@ class TestEventHandlerState(TestCase):
         h = fs.EventHandler(DummyStateManager(), "", filters=dict(exclude=["*"]))
         self.assertIn("*", h.exclude, "exclude wildcard not found")
 
-    def test_exclude_emtpy(self):
+    def test_exclude_empty(self):
         exclude = fs.EventHandler(DummyStateManager(), "").exclude
         self.assertIsInstance(exclude, tuple,
                               "expected tuple, got {0}".format(type(exclude)))
