@@ -3,3 +3,4 @@ twisted
 watchdog
 appdirs
 anytree>=2.2.0
+ipdb

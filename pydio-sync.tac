@@ -16,9 +16,9 @@ USR_DATA_DIR = user_data_dir(
 
 # Initialize user data directory if it hasn't been created
 if not osp.exists(USR_DATA_DIR):
-    from shutil import copyfile
-    os.makedirs(USR_DATA_DIR)
-    copyfile("config.yml", osp.join(USR_DATA_DIR, "config.yml"))
+	from shutil import copyfile
+	os.makedirs(USR_DATA_DIR)
+	copyfile("config.yml", osp.join(USR_DATA_DIR, "config.yml"))
 
 # Load app configuration
 with open(osp.join(USR_DATA_DIR, "config.yml")) as f:
