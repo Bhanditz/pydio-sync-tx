@@ -333,15 +333,31 @@ class TestEventHandlerInodeStat(TestCase):
 class TestEventHandlerNewInode(TestCase):
     def setUp(self):
         self.ws = mkdtemp()
+        self.wd = mkdtemp()
         self.h = fs.EventHandler(DummyStateManager(), self.ws)
 
     def tearDown(self):
         rmtree(self.ws)
         del self.ws, self.h
 
-    # @defer.inlineCallbacks
-    # def test_dir_on_create(self):
-    #     pass
+    @defer.inlineCallbacks
+    def test_dir_on_create(self):
+        sp = osp.join(self.ws)
+        dp = osp.join(self.wd)
+
+        # test move events logic
+        ev = events.DirMovedEvent(sp, dp)
+        d = yield self.h.new_node(ev)
+        self.assertEquals(d['node_path'], dp)
+        self.assertIn('md5', d)
+        self.assertIn('stat_result', d)
+
+        # test delete events logic
+        ev = events.DirDeletedEvent(sp)
+        d = yield self.h.new_node(ev)
+        self.assertEquals(d['node_path'], sp)
+        self.assertNotIn('md5', d)
+        self.assertNotIn('stat_result', d)
 
     # @defer.inlineCallbacks
     # def test_file_on_create(self):
